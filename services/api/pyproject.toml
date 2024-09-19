@@ -17,16 +17,19 @@ pydantic = "^2.8.2"
 sqlalchemy-declarative-extensions = {version = "^0.13.0", extras = ["parse"]}
 alembic = "^1.13.2"
 psycopg2-binary = "^2.9.9"
+dependency-injector = "^4.42.0"
+pydantic-settings = "^2.5.2"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.2"
 pytest = "^8.3.2"
 mypy = "^1.11.2"
 pytest-grpc = "^0.8.0"
+pytest-mock-resources = {version = "^2.12.1", extras = ["postgres-binary", "docker"]}
 
 [tool.ruff]
 extend = '../../ruff.toml'
-line-length = 100
+line-length = 120
 
 [build-system]
 requires = ["poetry-core"]

@@ -2,11 +2,14 @@ import time
 from concurrent import futures
 
 import grpc
+from dependency_injector import providers
+from dependency_injector.wiring import inject, Provide
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
-from chores.db import inject_db
-from chores.grpc.users_pb2 import (
+from chores.config import Config, load_config
+from chores.deps import Container
+from chores.grpc_generated.users_pb2 import (
     DeleteUserPayload,
     DeleteUserResponse,
     GetUserPayload,
@@ -18,15 +21,17 @@ from chores.grpc.users_pb2 import (
     UpdateUserPayload,
     UpdateUserResponse,
 )
-from chores.grpc.users_pb2_grpc import add_UsersServicer_to_server, UsersServicer
+from chores.grpc_generated.users_pb2_grpc import add_UsersServicer_to_server, UsersServicer
 from chores.models.user import User
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
 
 class UsersServer(UsersServicer):
-    @inject_db(commit_on_success=True)
-    def Register(self, db: Session, request: RegisterPayload, context) -> RegisterResponse:  # noqa: N802
+    @inject
+    def Register(
+        self, request: RegisterPayload, context, db: Session = Provide[Container.postgres]
+    ) -> RegisterResponse:  # noqa: N802
         user = User(
             email=request.email,
             password=request.password,
@@ -34,18 +39,17 @@ class UsersServer(UsersServicer):
             last_name=request.last_name,
         )
 
+        import pdb
+
+        pdb.set_trace()
         db.add(user)
         db.commit()
 
         return RegisterResponse(user_id=user.id)
 
-    @inject_db(commit_on_success=True)
-    def Login(self, db: Session, request: LoginPayload, context) -> LoginResponse:  # noqa: N802
-        user = (
-            db.query(User)
-            .filter(and_(User.email == request.email, User.password == request.password))
-            .one_or_none()
-        )
+    @inject
+    def Login(self, request: LoginPayload, context, db: Session = Provide[Container.postgres]) -> LoginResponse:  # noqa: N802
+        user = db.query(User).filter(and_(User.email == request.email, User.password == request.password)).one_or_none()
         if not user:
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details("Invalid email or password!")
@@ -53,8 +57,8 @@ class UsersServer(UsersServicer):
 
         return LoginResponse(user_id=user.id, token="")
 
-    @inject_db(commit_on_success=True)
-    def GetUser(self, db: Session, request: GetUserPayload, context) -> GetUserResponse:  # noqa: N802
+    @inject
+    def GetUser(self, request: GetUserPayload, context, db: Session = Provide[Container.postgres]) -> GetUserResponse:  # noqa: N802
         user = db.query(User).filter(User.id == request.user_id).one_or_none()
         if not user:
             context.set_code(grpc.StatusCode.NOT_FOUND)
@@ -68,8 +72,10 @@ class UsersServer(UsersServicer):
             last_name=user.last_name,
         )
 
-    @inject_db(commit_on_success=True)
-    def UpdateUser(self, db: Session, request: UpdateUserPayload, context) -> UpdateUserResponse:  # noqa: N802
+    @inject
+    def UpdateUser(
+        self, request: UpdateUserPayload, context, db: Session = Provide[Container.postgres]
+    ) -> UpdateUserResponse:  # noqa: N802
         user = db.query(User).filter(User.id == request.user_id).one_or_none()
         if not user:
             context.set_code(grpc.StatusCode.NOT_FOUND)
@@ -84,8 +90,10 @@ class UsersServer(UsersServicer):
 
         return UpdateUserResponse(user_id=user.id)
 
-    @inject_db(commit_on_success=True)
-    def DeleteUser(self, db: Session, request: DeleteUserPayload, context) -> DeleteUserResponse:  # noqa: N802
+    @inject
+    def DeleteUser(
+        self, request: DeleteUserPayload, context, db: Session = Provide[Container.postgres]
+    ) -> DeleteUserResponse:  # noqa: N802
         user = db.query(User).filter(User.id == request.user_id).one_or_none()
         if not user:
             context.set_code(grpc.StatusCode.NOT_FOUND)
@@ -99,6 +107,12 @@ class UsersServer(UsersServicer):
 
 
 def serve():
+    config = load_config()
+
+    container = Container()
+    container.config.override(providers.Factory(Config, **config.model_dump()))
+    container.init_resources()
+
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     add_UsersServicer_to_server(UsersServer(), server)
     server.add_insecure_port("[::]:50051")
@@ -108,3 +122,7 @@ def serve():
             time.sleep(_ONE_DAY_IN_SECONDS)
     except KeyboardInterrupt:
         server.stop(0)
+
+
+if __name__ == "__main__":
+    serve()

@@ -28,6 +28,5 @@ class PostgresConfig(BaseModel):
     drivername: str = "postgresql+psycopg2"
 
 
-@cache
 def load_config():
     return load_settings(Config)
