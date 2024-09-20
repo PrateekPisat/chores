@@ -9,4 +9,12 @@ def get_session(config: Config) -> callable:
     engine = sqlalchemy.create_engine(url)
 
     session_factory = sessionmaker(bind=engine)
-    return scoped_session(session_factory)
+    session = scoped_session(session_factory)
+
+    try:
+        yield session
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()

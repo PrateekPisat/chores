@@ -2,12 +2,11 @@ import time
 from concurrent import futures
 
 import grpc
-from dependency_injector import providers
 from dependency_injector.wiring import inject, Provide
+from grpc._server import _Context
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
-from chores.config import Config, load_config
 from chores.deps import Container
 from chores.grpc_generated.users_pb2 import (
     DeleteUserPayload,
@@ -29,23 +28,19 @@ _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
 class UsersServer(UsersServicer):
     @inject
-    def Register(
-        self, request: RegisterPayload, context, db: Session = Provide[Container.postgres]
-    ) -> RegisterResponse:  # noqa: N802
+    def Register(  # noqa: N802
+        self, request: RegisterPayload, context: _Context, postgres: Session = Provide[Container.postgres]
+    ):
         user = User(
             email=request.email,
             password=request.password,
             first_name=request.first_name,
             last_name=request.last_name,
         )
+        postgres.add(user)
+        postgres.commit()
 
-        import pdb
-
-        pdb.set_trace()
-        db.add(user)
-        db.commit()
-
-        return RegisterResponse(user_id=user.id)
+        return RegisterResponse(user_id=str(user.id))
 
     @inject
     def Login(self, request: LoginPayload, context, db: Session = Provide[Container.postgres]) -> LoginResponse:  # noqa: N802
@@ -73,9 +68,9 @@ class UsersServer(UsersServicer):
         )
 
     @inject
-    def UpdateUser(
+    def UpdateUser(  # noqa: N802
         self, request: UpdateUserPayload, context, db: Session = Provide[Container.postgres]
-    ) -> UpdateUserResponse:  # noqa: N802
+    ) -> UpdateUserResponse:
         user = db.query(User).filter(User.id == request.user_id).one_or_none()
         if not user:
             context.set_code(grpc.StatusCode.NOT_FOUND)
@@ -91,9 +86,9 @@ class UsersServer(UsersServicer):
         return UpdateUserResponse(user_id=user.id)
 
     @inject
-    def DeleteUser(
+    def DeleteUser(  # noqa: N802
         self, request: DeleteUserPayload, context, db: Session = Provide[Container.postgres]
-    ) -> DeleteUserResponse:  # noqa: N802
+    ) -> DeleteUserResponse:
         user = db.query(User).filter(User.id == request.user_id).one_or_none()
         if not user:
             context.set_code(grpc.StatusCode.NOT_FOUND)
@@ -107,11 +102,10 @@ class UsersServer(UsersServicer):
 
 
 def serve():
-    config = load_config()
-
     container = Container()
-    container.config.override(providers.Factory(Config, **config.model_dump()))
     container.init_resources()
+    container.inherited_providers()
+    container.wire(modules=[__name__])
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     add_UsersServicer_to_server(UsersServer(), server)

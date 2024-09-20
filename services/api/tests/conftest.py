@@ -37,6 +37,7 @@ def container(config: Config, db: Session):
     mock_container = Container()
     mock_container.config.override(providers.Factory(Config, **config.model_dump()))
     mock_container.init_resources()
+    mock_container.wire(modules=[".users_server"])
 
     yield mock_container
 
