@@ -26,10 +26,13 @@ pytest = "^8.3.2"
 mypy = "^1.11.2"
 pytest-grpc = "^0.8.0"
 pytest-mock-resources = {version = "^2.12.1", extras = ["postgres-binary", "docker"]}
+sqlalchemy-model-factory = "^0.4.6"
+faker = "^30.0.0"
 
 [tool.ruff]
 extend = '../../ruff.toml'
 line-length = 120
+
 
 [build-system]
 requires = ["poetry-core"]

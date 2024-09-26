@@ -9,8 +9,24 @@ from chores.models.base import Base
 from chores.users_server import UsersServer
 from pytest_mock_resources import create_postgres_fixture
 from sqlalchemy.orm import Session
+from sqlalchemy_model_factory import base, Registry
+from sqlalchemy_model_factory.pytest import create_registry_fixture
+
+from tests.factories.base import ModelFactory
 
 db = create_postgres_fixture(Base, session=True)
+registry = create_registry_fixture(ModelFactory)
+
+
+@pytest.fixture
+def mf_config():
+    return {"cleanup": False}
+
+
+@pytest.fixture
+def mf(registry: Registry, db: Session, mf_config: dict):
+    with base.ModelFactory(registry, db, options=mf_config) as model_manager:
+        yield model_manager
 
 
 @pytest.fixture

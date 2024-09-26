@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import cache
 from typing import Annotated
 
 from dataclass_settings import Env, load_settings
