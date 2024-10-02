@@ -1,9 +1,21 @@
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from typing import ClassVar as _ClassVar, Iterable as _Iterable, Optional as _Optional
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
+
+class User(_message.Message):
+    __slots__ = ("id", "email", "first_name", "last_name")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    EMAIL_FIELD_NUMBER: _ClassVar[int]
+    FIRST_NAME_FIELD_NUMBER: _ClassVar[int]
+    LAST_NAME_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    email: str
+    first_name: str
+    last_name: str
+    def __init__(self, id: _Optional[str] = ..., email: _Optional[str] = ..., first_name: _Optional[str] = ..., last_name: _Optional[str] = ...) -> None: ...
 
 class CreatePayload(_message.Message):
     __slots__ = ("name",)
@@ -74,12 +86,12 @@ class AddMemberResponse(_message.Message):
     def __init__(self, house_id: _Optional[str] = ..., user_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class RemoveMemberPayload(_message.Message):
-    __slots__ = ("house_id", "user_ids")
+    __slots__ = ("house_id", "user_id")
     HOUSE_ID_FIELD_NUMBER: _ClassVar[int]
-    USER_IDS_FIELD_NUMBER: _ClassVar[int]
+    USER_ID_FIELD_NUMBER: _ClassVar[int]
     house_id: str
-    user_ids: str
-    def __init__(self, house_id: _Optional[str] = ..., user_ids: _Optional[str] = ...) -> None: ...
+    user_id: str
+    def __init__(self, house_id: _Optional[str] = ..., user_id: _Optional[str] = ...) -> None: ...
 
 class RemoveMemberResponse(_message.Message):
     __slots__ = ("house_id", "user_id")
@@ -88,3 +100,11 @@ class RemoveMemberResponse(_message.Message):
     house_id: str
     user_id: str
     def __init__(self, house_id: _Optional[str] = ..., user_id: _Optional[str] = ...) -> None: ...
+
+class GetMembersResponse(_message.Message):
+    __slots__ = ("house_id", "users")
+    HOUSE_ID_FIELD_NUMBER: _ClassVar[int]
+    USERS_FIELD_NUMBER: _ClassVar[int]
+    house_id: str
+    users: _containers.RepeatedCompositeFieldContainer[User]
+    def __init__(self, house_id: _Optional[str] = ..., users: _Optional[_Iterable[_Union[User, _Mapping]]] = ...) -> None: ...

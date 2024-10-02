@@ -5,7 +5,7 @@ from chores.db import Database
 
 
 class Container(containers.DeclarativeContainer):
-    wiring_config = containers.WiringConfiguration(modules=[".users_server"])
+    wiring_config = containers.WiringConfiguration(modules=[".users_server", ".house_server"])
 
     config = providers.Callable(load_config)
     database = providers.Singleton(Database, config=config)

@@ -9,6 +9,14 @@ service House{
     rpc Delete(DeletePayload) returns (DeleteResponse) {}
     rpc AddMembers(AddMembersPayload) returns (AddMemberResponse) {}
     rpc RemoveMember(RemoveMemberPayload) returns (RemoveMemberResponse) {}
+    rpc GetMembers(GetPayload) returns (GetMembersResponse) {}
+}
+
+message User{
+    string id = 1;
+    string email = 2;
+    string first_name = 3;
+    string last_name = 4;
 }
 
 message CreatePayload{
@@ -57,10 +65,15 @@ message AddMemberResponse{
 
 message RemoveMemberPayload{
     string house_id = 1;
-    string user_ids = 2;
+    string user_id = 2;
 }
 
 message RemoveMemberResponse{
     string house_id = 1;
     string user_id = 2;
+}
+
+message GetMembersResponse{
+    string house_id = 1;
+    repeated User users = 2;
 }
