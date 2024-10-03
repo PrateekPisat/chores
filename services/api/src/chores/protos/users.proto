@@ -8,6 +8,7 @@ service Users{
  rpc GetUser(GetUserPayload) returns (GetUserResponse) {}
  rpc UpdateUser(UpdateUserPayload) returns (UpdateUserResponse) {}
  rpc DeleteUser(DeleteUserPayload) returns (DeleteUserResponse) {}
+ rpc SearchUser(SearchUserPayload) returns (SearchUserResponse) {}
 }
 
 message RegisterPayload{
@@ -59,4 +60,12 @@ message DeleteUserPayload{
 
 message DeleteUserResponse{
     string user_id = 1;
+}
+
+message SearchUserPayload{
+    string email = 1;
+}
+
+message SearchUserResponse{
+    repeated GetUserResponse users = 1;
 }
