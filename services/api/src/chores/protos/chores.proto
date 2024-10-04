@@ -1,0 +1,295 @@
+syntax = "proto3";
+
+package chores;
+
+service Task{
+    //  A Chore is an activity. It's not directly assigned to a user.
+    rpc CreateChore(CreateChorePayload) returns (CreateChoreResponse) {}
+    rpc GetChore(GetChorePayload) returns (GetChoreResponse) {}
+    rpc UpdateChore(UpdateChorePayload) returns (UpdateChoreResponse) {}
+    rpc DeleteChore(DeleteChorePayload) returns (DeleteChoreResponse) {}
+    // A distribution defines the users that are assigned to a chore.
+    rpc CreateDistribution(CreateDistributionPayload) returns (CreateDistributionResponse) {}
+    rpc GetDistribution(GetDistributionPayload) returns (GetDistributionResponse) {}
+    rpc UpdateDistribution(UpdateDistributionPayload) returns (UpdateDistributionResponse) {}
+    rpc DeleteDistribution(DeleteDistributionPayload) returns (DeleteDistributionResponse) {}
+    // A task is a user's assignment to a chore.
+    rpc GetTask(GetTaskPayload) returns (GetTaskResponse) {}
+    rpc UpdateTask(UpdateTaskPayload) returns (UpdateTaskResponse) {}
+    rpc DeleteTask(DeleteTaskPayload) returns (DeleteTaskResponse) {}
+}
+
+service House{
+    rpc Create(CreatePayload) returns (CreateResponse) {}
+    rpc Get(GetPayload) returns (GetResponse) {}
+    rpc Update(UpdatePayload) returns (UpdateResponse) {}
+    rpc Delete(DeletePayload) returns (DeleteResponse) {}
+    rpc AddMembers(AddMembersPayload) returns (AddMemberResponse) {}
+    rpc RemoveMember(RemoveMemberPayload) returns (RemoveMemberResponse) {}
+    rpc GetMembers(GetPayload) returns (GetMembersResponse) {}
+}
+
+service Users{
+ rpc Register(RegisterPayload) returns (RegisterResponse) {}
+ rpc Login(LoginPayload) returns (LoginResponse) {}
+ rpc GetUser(GetUserPayload) returns (GetUserResponse) {}
+ rpc UpdateUser(UpdateUserPayload) returns (UpdateUserResponse) {}
+ rpc DeleteUser(DeleteUserPayload) returns (DeleteUserResponse) {}
+ rpc SearchUser(SearchUserPayload) returns (SearchUserResponse) {}
+}
+
+enum Cadence {
+  DAILY = 0;
+  WEEKLY = 1;
+  MONTHLY = 2;
+  YEARLY = 3;
+}
+
+message User{
+    string id = 1;
+    string email = 2;
+    string first_name = 3;
+    string last_name = 4;
+}
+
+message Chore{
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    Cadence cadence = 4;
+    string start_date = 5;
+    string end_date = 6;
+}
+
+message CreateChorePayload{
+    string name = 1;
+    string description = 2;
+    Cadence cadence = 3;
+    string start_date = 4;
+    string end_date = 5;
+}
+
+message CreateChoreResponse{
+    string id = 1;
+}
+
+message GetChorePayload{
+    string id = 1;
+}
+
+message GetChoreResponse{
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    Cadence cadence = 4;
+    string start_date = 5;
+    string end_date = 6;
+}
+
+message UpdateChorePayload{
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    Cadence cadence = 4;
+    string start_date = 5;
+    string end_date = 6;
+}
+
+message UpdateChoreResponse{
+    string id = 1;
+}
+
+message DeleteChorePayload{
+    string id = 1;
+}
+
+message DeleteChoreResponse{
+    string id = 1;
+}
+
+
+message CreateDistributionPayload{
+    string chore_id = 1;
+    repeated string user_ids = 2;
+}
+
+message CreateDistributionResponse{
+    string id = 1;
+}
+
+message GetDistributionPayload{
+    string id = 1;
+}
+
+message GetDistributionResponse{
+    string id = 1;
+    Chore chore = 2;
+    repeated User users = 3;
+}
+
+message UpdateDistributionPayload{
+    string id = 1;
+    string chore_id = 2;
+    repeated string user_ids = 3;
+}
+
+message UpdateDistributionResponse{
+    string id = 1;
+}
+
+message DeleteDistributionPayload{
+    string id = 1;
+}
+
+message DeleteDistributionResponse{
+    string id = 1;
+}
+
+message GetTaskPayload{
+    string id = 1;
+}
+
+message GetTaskResponse{
+    string id = 1;
+    Chore chore = 2;
+    User user = 3;
+    string due_date = 4;
+    string completed_at = 5;
+}
+
+message UpdateTaskPayload{
+    string id = 1;
+    string due_date = 2;
+    string completed_at = 3;
+}
+
+message UpdateTaskResponse{
+    string id = 1;
+}
+
+message DeleteTaskPayload{
+    string id = 1;
+}
+
+message DeleteTaskResponse{
+    string id = 1;
+}
+
+
+message CreatePayload{
+    string name = 1;
+}
+
+message CreateResponse{
+    string house_id = 1;
+}
+
+message GetPayload{
+    string house_id = 1;
+}
+
+message GetResponse{
+    string house_id = 1;
+    string name = 2;
+}
+
+message UpdatePayload{
+    string house_id = 1;
+    string name = 2;
+}
+
+message UpdateResponse{
+    string house_id = 1;
+}
+
+message DeletePayload{
+    string house_id = 1;
+}
+
+message DeleteResponse{
+    string house_id = 1;
+}
+
+message AddMembersPayload{
+    string house_id = 1;
+    repeated string user_ids = 2;
+}
+
+message AddMemberResponse{
+    string house_id = 1;
+    repeated string user_ids = 2;
+}
+
+message RemoveMemberPayload{
+    string house_id = 1;
+    string user_id = 2;
+}
+
+message RemoveMemberResponse{
+    string house_id = 1;
+    string user_id = 2;
+}
+
+message GetMembersResponse{
+    string house_id = 1;
+    repeated User users = 2;
+}
+
+message RegisterPayload{
+    string email = 1;
+    string password = 2;
+    string first_name = 3;
+    string last_name = 4;
+}
+
+message RegisterResponse{
+    string user_id = 1;
+}
+
+message LoginPayload{
+    string email = 1;
+    string password = 2;
+}
+
+message LoginResponse{
+    string user_id = 1;
+    string token = 2;
+}
+
+message GetUserPayload{
+    string user_id = 1;
+}
+
+message GetUserResponse{
+    string user_id = 1;
+    string email = 2;
+    string first_name = 3;
+    string last_name = 4;
+}
+
+message UpdateUserPayload{
+    string user_id = 1;
+    string email = 2;
+    string first_name = 3;
+    string last_name = 4;
+}
+
+message UpdateUserResponse{
+    string user_id = 1;
+}
+
+message DeleteUserPayload{
+    string user_id = 1;
+}
+
+message DeleteUserResponse{
+    string user_id = 1;
+}
+
+message SearchUserPayload{
+    string email = 1;
+}
+
+message SearchUserResponse{
+    repeated GetUserResponse users = 1;
+}

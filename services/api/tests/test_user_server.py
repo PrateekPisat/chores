@@ -2,7 +2,7 @@ import uuid
 
 import grpc
 import pytest
-from chores.grpc_generated.users_pb2 import (
+from chores.grpc_generated.chores_pb2 import (
     DeleteUserPayload,
     DeleteUserResponse,
     GetUserPayload,
@@ -10,10 +10,12 @@ from chores.grpc_generated.users_pb2 import (
     LoginPayload,
     LoginResponse,
     RegisterPayload,
+    SearchUserPayload,
+    SearchUserResponse,
     UpdateUserPayload,
     UpdateUserResponse,
 )
-from chores.grpc_generated.users_pb2_grpc import UsersStub
+from chores.grpc_generated.chores_pb2_grpc import UsersStub
 from chores.models.user import User
 from sqlalchemy.orm import Session
 
@@ -115,3 +117,37 @@ class Test_UsersServer:
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.NOT_FOUND
         assert exception.details() == f"User with user id: {request.user_id} not found!"
+
+    def test_search_user(self, user_service: UsersStub, mf: ModelFactory):
+        user = mf.user.user()
+        request = SearchUserPayload(email=user.email)
+
+        response: SearchUserResponse = user_service.SearchUser(request)
+
+        assert len(response.users) == 1
+        assert response.users[0].user_id == str(user.id)
+        assert response.users[0].email == user.email
+        assert response.users[0].first_name == user.first_name
+        assert response.users[0].last_name == user.last_name
+
+    @pytest.mark.parametrize("email", ["test", "email", "test@", "@email"])
+    def test_search_user_filter(self, user_service: UsersStub, mf: ModelFactory, email: str):
+        user = mf.user.user(email="test@email.com")
+        request = SearchUserPayload(email=email)
+
+        response: SearchUserResponse = user_service.SearchUser(request)
+
+        assert len(response.users) == 1
+        assert response.users[0].user_id == str(user.id)
+        assert response.users[0].email == user.email
+        assert response.users[0].first_name == user.first_name
+        assert response.users[0].last_name == user.last_name
+
+    @pytest.mark.parametrize("query", ["test1", "email", "@email", "1test", "random_name"])
+    def test_search_user_no_match(self, user_service: UsersStub, mf: ModelFactory, query: str):
+        mf.user.user(email="test@example.com")
+        request = SearchUserPayload(email=query)
+
+        response: SearchUserResponse = user_service.SearchUser(request)
+
+        assert len(response.users) == 0

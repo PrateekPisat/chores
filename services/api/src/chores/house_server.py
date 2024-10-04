@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from chores.db import Database
 from chores.deps import Container
-from chores.grpc_generated.house_pb2 import (
+from chores.grpc_generated.chores_pb2 import (
     AddMemberResponse,
     AddMembersPayload,
     CreatePayload,
@@ -25,14 +25,14 @@ from chores.grpc_generated.house_pb2 import (
     UpdatePayload,
     UpdateResponse,
 )
-from chores.grpc_generated.house_pb2_grpc import add_HouseServicer_to_server, HouseServicer
+from chores.grpc_generated.chores_pb2_grpc import add_HouseServicer_to_server, HouseServicer
 from chores.models.house import House, HouseMember
 from chores.users_server import _ONE_DAY_IN_SECONDS
 
 
 class HouseServer(HouseServicer):
     @inject
-    def Create(  # noqa: N802
+    def Create(
         self, request: CreatePayload, context: _Context, database: Database = Provide[Container.database]
     ) -> CreateResponse:
         house = House(name=request.name)
@@ -43,7 +43,7 @@ class HouseServer(HouseServicer):
             return CreateResponse(house_id=str(house.id))
 
     @inject
-    def Get(  # noqa: N802
+    def Get(
         self, request: GetPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> GetResponse:
         with database.session() as db:
@@ -57,7 +57,7 @@ class HouseServer(HouseServicer):
         return GetResponse(house_id=str(house.id), name=house.name)
 
     @inject
-    def Update(  # noqa: N802
+    def Update(
         self, request: UpdatePayload, context: _Context, database: Database = Provide[Container.database]
     ) -> UpdateResponse:
         with database.session() as db:
@@ -75,7 +75,7 @@ class HouseServer(HouseServicer):
             return UpdateResponse(house_id=str(house.id))
 
     @inject
-    def Delete(  # noqa: N802
+    def Delete(
         self, request: DeletePayload, context: _Context, database: Database = Provide[Container.database]
     ) -> DeleteResponse:
         with database.session() as db:
@@ -92,7 +92,7 @@ class HouseServer(HouseServicer):
             return DeleteResponse(house_id=str(house.id))
 
     @inject
-    def AddMembers(  # noqa: N802
+    def AddMembers(
         self, request: AddMembersPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> AddMemberResponse:
         with database.session() as db:
@@ -126,7 +126,7 @@ class HouseServer(HouseServicer):
             return AddMemberResponse(house_id=request.house_id, user_ids=request.user_ids)
 
     @inject
-    def RemoveMember(  # noqa: N802
+    def RemoveMember(
         self, request: RemoveMemberPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> RemoveMemberResponse:
         with database.session() as db:
@@ -139,7 +139,7 @@ class HouseServer(HouseServicer):
             return RemoveMemberResponse(user_id=request.user_id, house_id=request.house_id)
 
     @inject
-    def GetMembers(  # noqa: N802
+    def GetMembers(
         self, request: GetPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> GetMembersResponse:
         with database.session() as db:

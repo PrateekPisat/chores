@@ -11,6 +11,7 @@ ignore = [
     "S101",
     "N818",  # Exceptions must end with "Error" or other qualifiers (would enable, we just have some violations currently).
     "N999",  # Invalid module name, seeming false positives
+    "N802",  # Function name should be lowercase, we should un-ignore this
 ]
 extend-select = ["D"]
 extend-ignore = [

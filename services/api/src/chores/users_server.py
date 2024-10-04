@@ -8,7 +8,7 @@ from sqlalchemy import and_
 
 from chores.db import Database
 from chores.deps import Container
-from chores.grpc_generated.users_pb2 import (
+from chores.grpc_generated.chores_pb2 import (
     DeleteUserPayload,
     DeleteUserResponse,
     GetUserPayload,
@@ -17,10 +17,12 @@ from chores.grpc_generated.users_pb2 import (
     LoginResponse,
     RegisterPayload,
     RegisterResponse,
+    SearchUserPayload,
+    SearchUserResponse,
     UpdateUserPayload,
     UpdateUserResponse,
 )
-from chores.grpc_generated.users_pb2_grpc import add_UsersServicer_to_server, UsersServicer
+from chores.grpc_generated.chores_pb2_grpc import add_UsersServicer_to_server, UsersServicer
 from chores.models.user import User
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
@@ -28,7 +30,7 @@ _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
 class UsersServer(UsersServicer):
     @inject
-    def Register(  # noqa: N802
+    def Register(
         self, request: RegisterPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> RegisterResponse:
         user = User(
@@ -44,7 +46,7 @@ class UsersServer(UsersServicer):
             return RegisterResponse(user_id=str(user.id))
 
     @inject
-    def Login(self, request: LoginPayload, context, database: Database = Provide[Container.database]) -> LoginResponse:  # noqa: N802
+    def Login(self, request: LoginPayload, context, database: Database = Provide[Container.database]) -> LoginResponse:
         with database.session() as db:
             user = (
                 db.query(User)
@@ -59,7 +61,7 @@ class UsersServer(UsersServicer):
         return LoginResponse(user_id=str(user.id), token="")
 
     @inject
-    def GetUser(  # noqa: N802
+    def GetUser(
         self, request: GetUserPayload, context, database: Database = Provide[Container.database]
     ) -> GetUserResponse:
         with database.session() as db:
@@ -77,7 +79,7 @@ class UsersServer(UsersServicer):
         )
 
     @inject
-    def UpdateUser(  # noqa: N802
+    def UpdateUser(
         self, request: UpdateUserPayload, context, database: Database = Provide[Container.database]
     ) -> UpdateUserResponse:
         with database.session() as db:
@@ -96,7 +98,7 @@ class UsersServer(UsersServicer):
             return UpdateUserResponse(user_id=str(user.id))
 
     @inject
-    def DeleteUser(  # noqa: N802
+    def DeleteUser(
         self, request: DeleteUserPayload, context, database: Database = Provide[Container.database]
     ) -> DeleteUserResponse:
         with database.session() as db:
@@ -110,6 +112,22 @@ class UsersServer(UsersServicer):
             db.commit()
 
             return DeleteUserResponse(user_id=str(user.id))
+
+    @inject
+    def SearchUser(
+        self, request: SearchUserPayload, context: _Context, database: Database = Provide[Container.database]
+    ) -> SearchUserResponse:
+        with database.session() as db:
+            users = db.query(User).filter(User.email.like(f"%{request.email}%")).all()
+
+        return SearchUserResponse(
+            users=[
+                GetUserResponse(
+                    user_id=str(user.id), email=user.email, first_name=user.first_name, last_name=user.last_name
+                )
+                for user in users
+            ]
+        )
 
 
 def serve():

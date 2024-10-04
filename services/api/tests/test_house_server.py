@@ -2,7 +2,7 @@ import uuid
 
 import grpc
 import pytest
-from chores.grpc_generated.house_pb2 import (
+from chores.grpc_generated.chores_pb2 import (
     AddMembersPayload,
     CreatePayload,
     DeletePayload,
@@ -10,7 +10,7 @@ from chores.grpc_generated.house_pb2 import (
     RemoveMemberPayload,
     UpdatePayload,
 )
-from chores.grpc_generated.house_pb2_grpc import HouseStub
+from chores.grpc_generated.chores_pb2_grpc import HouseStub
 from chores.models.house import House, HouseMember
 from sqlalchemy.orm import Session
 

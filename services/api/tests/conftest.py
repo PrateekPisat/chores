@@ -4,10 +4,17 @@ import grpc
 import pytest
 from chores.config import Config
 from chores.deps import Container, providers
-from chores.grpc_generated.house_pb2_grpc import add_HouseServicer_to_server, HouseStub
-from chores.grpc_generated.users_pb2_grpc import add_UsersServicer_to_server, UsersStub
+from chores.grpc_generated.chores_pb2_grpc import (
+    add_HouseServicer_to_server,
+    add_TaskServicer_to_server,
+    add_UsersServicer_to_server,
+    HouseStub,
+    TaskStub,
+    UsersStub,
+)
 from chores.house_server import HouseServer
 from chores.models.base import Base
+from chores.task_server import TaskServer
 from chores.users_server import UsersServer
 from pytest_mock_resources import create_postgres_fixture
 from sqlalchemy.orm import Session
@@ -55,7 +62,7 @@ def container(config: Config, db: Session):
     mock_container = Container()
     mock_container.config.override(providers.Factory(Config, **config.model_dump()))
     mock_container.init_resources()
-    mock_container.wire(modules=[".users_server", ".house_server"])
+    mock_container.wire(modules=[".users_server", ".house_server", ".task_server"])
 
     yield mock_container
 
@@ -84,5 +91,19 @@ def house_service(container: Container):
     try:
         with grpc.insecure_channel("localhost:%d" % port) as channel:
             yield HouseStub(channel)
+    finally:
+        server.stop(None)
+
+
+@pytest.fixture
+def task_service(container: Container):
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    add_TaskServicer_to_server(TaskServer(), server)
+    port = server.add_insecure_port("[::]:0")
+    server.start()
+
+    try:
+        with grpc.insecure_channel("localhost:%d" % port) as channel:
+            yield TaskStub(channel)
     finally:
         server.stop(None)

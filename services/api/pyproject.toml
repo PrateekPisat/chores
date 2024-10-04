@@ -19,6 +19,7 @@ alembic = "^1.13.2"
 psycopg2-binary = "^2.9.9"
 dependency-injector = "^4.42.0"
 pydantic-settings = "^2.5.2"
+pendulum = "^3.0.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.2"
