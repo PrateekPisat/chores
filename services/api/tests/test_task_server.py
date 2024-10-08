@@ -3,9 +3,15 @@ import uuid
 import grpc
 import pendulum
 import pytest
-from chores.grpc_generated.chores_pb2 import Cadence, CreateChorePayload, GetChorePayload, UpdateChorePayload
+from chores.grpc_generated.chores_pb2 import (
+    Cadence,
+    CreateChorePayload,
+    CreateDistributionPayload,
+    GetChorePayload,
+    UpdateChorePayload,
+)
 from chores.grpc_generated.chores_pb2_grpc import TaskStub
-from chores.models.chore import Chore
+from chores.models.chore import Chore, ChoreDistribution
 from chores.utils import enum_mapper
 from sqlalchemy.orm import Session
 
@@ -118,7 +124,31 @@ class Test_Chores:
         assert exception.details() == f"Chore {request.id} not found!"
 
 
-class Test_ChoreDistribution: ...
+class Test_ChoreDistribution:
+    def test_it_distributes_a_chore(self, task_service: TaskStub, db: Session, mf: ModelFactory):
+        chore = mf.chore.chore()
+        user1 = mf.user.user()
+        user2 = mf.user.user()
+
+        request = CreateDistributionPayload(chore_id=str(chore.id), user_ids=[str(user1.id), str(user2.id)])
+        response = task_service.CreateDistribution(request)
+
+        assert response.id == str(chore.id)
+
+        chore_distribution = db.query(ChoreDistribution).filter(ChoreDistribution.chore_id == chore.id).all()
+        assert len(chore_distribution) == 2
+        assert chore_distribution[0].user_id == user1.id
+        assert chore_distribution[1].user_id == user2.id
+
+    def test_it_raises_on_missing_chore_for_distribution(self, task_service: TaskStub):
+        request = CreateDistributionPayload(chore_id=str(uuid.uuid4()), user_ids=[str(uuid.uuid4())])
+
+        with pytest.raises(grpc._channel._InactiveRpcError) as e:
+            task_service.CreateDistribution(request)
+
+        exception = e.value.exception()
+        assert exception.code() == grpc.StatusCode.NOT_FOUND
+        assert exception.details() == f"Chore {request.id} not found!"
 
 
 class Test_Task: ...

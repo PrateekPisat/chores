@@ -24,8 +24,9 @@ class ChoreDistribution(Base):
     __tablename__ = "chore_distribution"
     __table_args__ = {"schema": "chores"}
 
-    chore_id = mapped_column(UUID(as_uuid=True), ForeignKey("chores.chore.id"), nullable=False, primary_key=True)
-    user_id = mapped_column(UUID(as_uuid=True), ForeignKey("chores.user.id"), nullable=False, primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    chore_id = mapped_column(UUID(as_uuid=True), ForeignKey("chores.chore.id"), nullable=False)
+    user_id = mapped_column(UUID(as_uuid=True), ForeignKey("chores.user.id"), nullable=False)
 
     chore: Mapped[Chore] = relationship("Chore")
     user = relationship("User")
@@ -40,6 +41,6 @@ class Task(Base):
         UUID(as_uuid=True), ForeignKey("chores.chore_distribution.id"), nullable=False
     )
     due_date: Mapped[date] = mapped_column(Date, nullable=False)
-    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True, default=False)
 
     chore_distribution: Mapped[ChoreDistribution] = relationship("ChoreDistribution")

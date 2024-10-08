@@ -114,35 +114,33 @@ message CreateDistributionPayload{
 }
 
 message CreateDistributionResponse{
-    string id = 1;
+    string id = 1; // Chore ID
 }
 
 message GetDistributionPayload{
-    string id = 1;
+    string id = 1; // Chore ID
 }
 
 message GetDistributionResponse{
-    string id = 1;
-    Chore chore = 2;
-    repeated User users = 3;
+    Chore chore = 1;
+    repeated User users = 2;
 }
 
 message UpdateDistributionPayload{
-    string id = 1;
-    string chore_id = 2;
-    repeated string user_ids = 3;
+    string chore_id = 1;
+    repeated string user_ids = 2;
 }
 
 message UpdateDistributionResponse{
-    string id = 1;
+    string id = 1; // Chore ID
 }
 
 message DeleteDistributionPayload{
-    string id = 1;
+    string id = 1; // Chore ID
 }
 
 message DeleteDistributionResponse{
-    string id = 1;
+    string id = 1; // Chore ID
 }
 
 message GetTaskPayload{

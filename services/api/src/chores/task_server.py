@@ -1,3 +1,4 @@
+from itertools import cycle, zip_longest
 import uuid
 
 import grpc
@@ -26,8 +27,8 @@ from chores.grpc_generated.chores_pb2 import (
     UpdateDistributionResponse,
 )
 from chores.grpc_generated.chores_pb2_grpc import TaskServicer
-from chores.models.chore import Chore, ChoreDistribution
-from chores.utils import enum_mapper
+from chores.models.chore import Chore, ChoreDistribution, Task
+from chores.utils import enum_mapper, get_intervals
 
 
 class TaskServer(TaskServicer):
@@ -125,15 +126,22 @@ class TaskServer(TaskServicer):
                 return CreateDistributionResponse()
 
             distributions = [
-                ChoreDistribution(
-                    chore_id=uuid.UUID(request.chore_id),
-                    user_id=uuid.UUID(user_id),
-                )
+                ChoreDistribution(chore_id=uuid.UUID(request.chore_id), user_id=uuid.UUID(user_id))
                 for user_id in request.user_ids
             ]
             db.add_all(distributions)
 
-        return CreateDistributionResponse()
+            for due_date, distribution in zip_longest(
+                get_intervals(chore.start_date, chore.end_date, chore.cadence), cycle(distributions), fillvalue=None
+            ):
+                if not distribution:
+                    break
+                task = Task(chore_distribution=distribution, due_date=due_date)
+                db.add(task)
+
+            db.commit()
+
+        return CreateDistributionResponse(id=str(chore.id))
 
     @inject
     def GetDistribution(
