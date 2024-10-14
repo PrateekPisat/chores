@@ -1,5 +1,5 @@
-from itertools import cycle, zip_longest
 import uuid
+from itertools import cycle, zip_longest
 
 import grpc
 from dependency_injector.wiring import inject, Provide
@@ -21,10 +21,17 @@ from chores.grpc_generated.chores_pb2 import (
     GetChoreResponse,
     GetDistributionPayload,
     GetDistributionResponse,
+    GetUserResponse,
     UpdateChorePayload,
     UpdateChoreResponse,
     UpdateDistributionPayload,
     UpdateDistributionResponse,
+)
+from chores.grpc_generated.chores_pb2 import (
+    Chore as ChorePayload,
+)
+from chores.grpc_generated.chores_pb2 import (
+    User as UserPayload,
 )
 from chores.grpc_generated.chores_pb2_grpc import TaskServicer
 from chores.models.chore import Chore, ChoreDistribution, Task
@@ -122,7 +129,7 @@ class TaskServer(TaskServicer):
 
             if not chore:
                 context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"Chore {request.id} not found!")
+                context.set_details(f"Chore {request.chore_id} not found!")
                 return CreateDistributionResponse()
 
             distributions = [
@@ -134,20 +141,47 @@ class TaskServer(TaskServicer):
             for due_date, distribution in zip_longest(
                 get_intervals(chore.start_date, chore.end_date, chore.cadence), cycle(distributions), fillvalue=None
             ):
-                if not distribution:
+                if not due_date:
                     break
                 task = Task(chore_distribution=distribution, due_date=due_date)
                 db.add(task)
 
             db.commit()
 
-        return CreateDistributionResponse(id=str(chore.id))
+            return CreateDistributionResponse(id=str(chore.id))
 
     @inject
     def GetDistribution(
         self, request: GetDistributionPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> GetDistributionResponse:
-        pass
+        with database.session() as db:
+            chore = db.query(Chore).filter(Chore.id == request.id).one_or_none()
+
+            if not chore:
+                context.set_code(grpc.StatusCode.NOT_FOUND)
+                context.set_details(f"Chore {request.id} not found!")
+                return GetDistributionResponse()
+
+            distributions = db.query(ChoreDistribution).filter(ChoreDistribution.chore_id == chore.id).all()
+            return GetDistributionResponse(
+                chore=ChorePayload(
+                    id=str(chore.id),
+                    name=chore.name,
+                    description=chore.description,
+                    cadence=chore.cadence,
+                    start_date=str(chore.start_date),
+                    end_date=str(chore.end_date),
+                ),
+                users=[
+                    UserPayload(
+                        id=str(distribution.user.id),
+                        email=distribution.user.email,
+                        first_name=distribution.user.first_name,
+                        last_name=distribution.user.last_name,
+                    )
+                    for distribution in distributions
+                ],
+            )
 
     @inject
     def UpdateDistribution(

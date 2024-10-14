@@ -23,8 +23,12 @@ class HouseMember(Base):
     __tablename__ = "house_member"
     __table_args__ = {"schema": "chores"}
 
-    house_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("chores.house.id"), primary_key=True)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("chores.user.id"), primary_key=True)
+    house_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("chores.house.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("chores.user.id", ondelete="CASCADE"), primary_key=True
+    )
 
     house: Mapped[House] = relationship("House", back_populates="members")
     user = relationship("User", back_populates="houses")

@@ -8,10 +8,12 @@ from chores.grpc_generated.chores_pb2 import (
     CreateChorePayload,
     CreateDistributionPayload,
     GetChorePayload,
+    GetDistributionPayload,
+    GetDistributionResponse,
     UpdateChorePayload,
 )
 from chores.grpc_generated.chores_pb2_grpc import TaskStub
-from chores.models.chore import Chore, ChoreDistribution
+from chores.models.chore import Chore, ChoreDistribution, Task
 from chores.utils import enum_mapper
 from sqlalchemy.orm import Session
 
@@ -126,7 +128,9 @@ class Test_Chores:
 
 class Test_ChoreDistribution:
     def test_it_distributes_a_chore(self, task_service: TaskStub, db: Session, mf: ModelFactory):
-        chore = mf.chore.chore()
+        chore = mf.chore.chore(
+            start_date=pendulum.now().date(), end_date=pendulum.now().add(days=7).date(), cadence="DAILY"
+        )
         user1 = mf.user.user()
         user2 = mf.user.user()
 
@@ -140,11 +144,46 @@ class Test_ChoreDistribution:
         assert chore_distribution[0].user_id == user1.id
         assert chore_distribution[1].user_id == user2.id
 
+        tasks = db.query(Task).join(ChoreDistribution).filter(ChoreDistribution.chore_id == chore.id).all()
+        assert len(tasks) == 7
+
     def test_it_raises_on_missing_chore_for_distribution(self, task_service: TaskStub):
         request = CreateDistributionPayload(chore_id=str(uuid.uuid4()), user_ids=[str(uuid.uuid4())])
 
         with pytest.raises(grpc._channel._InactiveRpcError) as e:
             task_service.CreateDistribution(request)
+
+        exception = e.value.exception()
+        assert exception.code() == grpc.StatusCode.NOT_FOUND
+        assert exception.details() == f"Chore {request.chore_id} not found!"
+
+    def test_it_gets_a_distribution(self, task_service: TaskStub, db: Session, mf: ModelFactory):
+        chore = mf.chore.chore(cadence="DAILY")
+        user = mf.user.user()
+        mf.chore.distribution(chore=chore, user=user)
+        request = GetDistributionPayload(id=str(chore.id))
+
+        response: GetDistributionResponse = task_service.GetDistribution(request)
+
+        assert response
+        assert response.chore.id == str(chore.id)
+        assert response.chore.name == chore.name
+        assert response.chore.description == chore.description
+        assert response.chore.cadence == 0  # DAILY
+        assert response.chore.start_date == chore.start_date.isoformat()
+        assert response.chore.end_date == chore.end_date.isoformat()
+
+        assert len(response.users) == 1
+        assert response.users[0].id == str(user.id)
+        assert response.users[0].email == user.email
+        assert response.users[0].first_name == user.first_name
+        assert response.users[0].last_name == user.last_name
+
+    def test_it_raises_on_missing_distribution(self, task_service: TaskStub):
+        request = GetDistributionPayload(id=str(uuid.uuid4()))
+
+        with pytest.raises(grpc._channel._InactiveRpcError) as e:
+            task_service.GetDistribution(request)
 
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.NOT_FOUND
