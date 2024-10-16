@@ -4,6 +4,8 @@ from itertools import cycle, zip_longest
 import grpc
 from dependency_injector.wiring import inject, Provide
 from grpc._server import _Context
+from sqlalchemy import delete
+from sqlalchemy.orm import selectinload
 
 from chores.db import Database
 from chores.deps import Container
@@ -17,15 +19,20 @@ from chores.grpc_generated.chores_pb2 import (
     DeleteChoreResponse,
     DeleteDistributionPayload,
     DeleteDistributionResponse,
+    DeleteTaskPayload,
+    DeleteTaskResponse,
     GetChorePayload,
     GetChoreResponse,
     GetDistributionPayload,
     GetDistributionResponse,
-    GetUserResponse,
+    GetTaskPayload,
+    GetTaskResponse,
     UpdateChorePayload,
     UpdateChoreResponse,
     UpdateDistributionPayload,
     UpdateDistributionResponse,
+    UpdateTaskPayload,
+    UpdateTaskResponse,
 )
 from chores.grpc_generated.chores_pb2 import (
     Chore as ChorePayload,
@@ -35,7 +42,7 @@ from chores.grpc_generated.chores_pb2 import (
 )
 from chores.grpc_generated.chores_pb2_grpc import TaskServicer
 from chores.models.chore import Chore, ChoreDistribution, Task
-from chores.utils import enum_mapper, get_intervals
+from chores.utils import distribution_needs_update, enum_mapper, get_intervals
 
 
 class TaskServer(TaskServicer):
@@ -75,8 +82,8 @@ class TaskServer(TaskServicer):
             name=chore.name,
             description=chore.description,
             cadence=chore.cadence,
-            start_date=str(chore.start_date),
-            end_date=str(chore.end_date),
+            start_date=chore.start_date.isoformat(),
+            end_date=chore.end_date.isoformat(),
         )
 
     @inject
@@ -85,21 +92,30 @@ class TaskServer(TaskServicer):
     ) -> UpdateChoreResponse:
         enum_map = enum_mapper(Cadence)
         with database.session() as db:
-            chore = db.query(Chore).filter(Chore.id == request.id).one_or_none()
+            chore = (
+                db.query(Chore).options(selectinload(Chore.distributions)).filter(Chore.id == request.id).one_or_none()
+            )
 
             if not chore:
                 context.set_code(grpc.StatusCode.NOT_FOUND)
                 context.set_details(f"Chore {request.id} not found!")
                 return UpdateChoreResponse()
 
+            needs_update = distribution_needs_update(chore, request, enum_map)
+
             chore.name = request.name
             chore.description = request.description
             chore.cadence = enum_map[request.cadence]
             chore.start_date = request.start_date
             chore.end_date = request.end_date
-
             db.add(chore)
             db.commit()
+
+            if needs_update and chore.distributions:
+                update_distribution_request = UpdateDistributionPayload(
+                    chore_id=str(chore.id), user_ids=[str(distribution.user_id) for distribution in chore.distributions]
+                )
+                self.UpdateDistribution(update_distribution_request, context)
 
             return UpdateChoreResponse(id=str(chore.id))
 
@@ -169,8 +185,8 @@ class TaskServer(TaskServicer):
                     name=chore.name,
                     description=chore.description,
                     cadence=chore.cadence,
-                    start_date=str(chore.start_date),
-                    end_date=str(chore.end_date),
+                    start_date=chore.start_date.isoformat(),
+                    end_date=chore.end_date.isoformat(),
                 ),
                 users=[
                     UserPayload(
@@ -187,10 +203,122 @@ class TaskServer(TaskServicer):
     def UpdateDistribution(
         self, request: UpdateDistributionPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> UpdateDistributionResponse:
-        pass
+        with database.session() as db:
+            chore = db.query(Chore).filter(Chore.id == request.chore_id).one_or_none()
+
+            if not chore:
+                context.set_code(grpc.StatusCode.NOT_FOUND)
+                context.set_details(f"Chore {request.chore_id} not found!")
+                return UpdateDistributionResponse()
+
+            db.execute(delete(ChoreDistribution).where(ChoreDistribution.chore_id == chore.id))
+
+            distributions = [
+                ChoreDistribution(chore_id=uuid.UUID(request.chore_id), user_id=uuid.UUID(user_id))
+                for user_id in request.user_ids
+            ]
+            db.add_all(distributions)
+
+            for due_date, distribution in zip_longest(
+                get_intervals(chore.start_date, chore.end_date, chore.cadence), cycle(distributions), fillvalue=None
+            ):
+                if not due_date:
+                    break
+                task = Task(chore_distribution=distribution, due_date=due_date)
+                db.add(task)
+
+            db.commit()
+
+            return UpdateDistributionResponse(id=str(chore.id))
 
     @inject
     def DeleteDistribution(
         self, request: DeleteDistributionPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> DeleteDistributionResponse:
-        pass
+        with database.session() as db:
+            distributions = db.query(ChoreDistribution).filter(ChoreDistribution.chore_id == request.id).all()
+
+            if not distributions:
+                context.set_code(grpc.StatusCode.NOT_FOUND)
+                context.set_details(f"Chore {request.id} not found!")
+                return DeleteDistributionResponse()
+
+            for distribution in distributions:
+                db.delete(distribution)
+            db.commit()
+
+            return DeleteDistributionResponse(id=request.id)
+
+    def GetTask(
+        self, request: GetTaskPayload, context: _Context, database: Database = Provide[Container.database]
+    ) -> GetTaskResponse:
+        with database.session() as db:
+            task = (
+                db.query(Task)
+                .options(
+                    selectinload(Task.chore_distribution).selectinload(ChoreDistribution.user),
+                    selectinload(Task.chore_distribution).selectinload(ChoreDistribution.chore),
+                )
+                .filter(Task.id == request.id)
+                .one_or_none()
+            )
+
+            if not task:
+                context.set_code(grpc.StatusCode.NOT_FOUND)
+                context.set_details(f"Task {request.id} not found!")
+                return GetTaskResponse()
+
+            return GetTaskResponse(
+                id=str(task.id),
+                due_date=task.due_date.isoformat(),
+                completed_at=task.completed_at.isoformat(),
+                chore=ChorePayload(
+                    id=str(task.chore_distribution.chore.id),
+                    name=task.chore_distribution.chore.name,
+                    description=task.chore_distribution.chore.description,
+                    cadence=task.chore_distribution.chore.cadence,
+                    start_date=task.chore_distribution.chore.start_date.isoformat(),
+                    end_date=task.chore_distribution.chore.end_date.isoformat(),
+                ),
+                user=UserPayload(
+                    id=str(task.chore_distribution.user.id),
+                    email=task.chore_distribution.user.email,
+                    first_name=task.chore_distribution.user.first_name,
+                    last_name=task.chore_distribution.user.last_name,
+                ),
+            )
+
+    def UpdateTask(
+        self, request: UpdateTaskPayload, context: _Context, database: Database = Provide[Container.database]
+    ) -> UpdateTaskResponse:
+        with database.session() as db:
+            task = db.query(Task).filter(Task.id == request.id).one_or_none()
+
+            if not task:
+                context.set_code(grpc.StatusCode.NOT_FOUND)
+                context.set_details(f"Task {request.id} not found!")
+                return UpdateTaskResponse()
+
+            task.due_date = request.due_date
+            task.completed_at = request.completed_at
+
+            db.add(task)
+            db.commit()
+
+            return UpdateTaskResponse(id=str(task.id))
+
+    def DeleteTask(
+        self, request: DeleteTaskPayload, context: _Context, database: Database = Provide[Container.database]
+    ) -> DeleteTaskResponse:
+        with database.session() as db:
+            task = db.query(Task).filter(Task.id == request.id).one_or_none()
+
+            if not task:
+                context.set_code(grpc.StatusCode.NOT_FOUND)
+                context.set_details(f"Task {request.id} not found!")
+                return DeleteTaskResponse()
+
+            db.delete(task)
+            db.commit()
+
+            return DeleteTaskResponse(id=str(task.id))

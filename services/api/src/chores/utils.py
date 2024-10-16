@@ -4,7 +4,8 @@ from functools import cache
 
 from google.protobuf.internal import enum_type_wrapper
 
-from chores.grpc_generated.chores_pb2 import Cadence
+from chores.grpc_generated.chores_pb2 import Cadence, UpdateChorePayload
+from chores.models.chore import Chore
 
 CADENCE_MAP = {"DAILY": "days", "WEEKLY": "weeks", "MONTHLY": "months", "YEARLY": "years"}
 
@@ -18,3 +19,11 @@ def get_intervals(start_date: date, end_date: date, cadence: Cadence) -> Generat
     while start_date < end_date:
         start_date = start_date + timedelta(**{CADENCE_MAP[cadence]: 1})
         yield start_date
+
+
+def distribution_needs_update(chore: Chore, request: UpdateChorePayload, enum_map: dict) -> bool:
+    return (
+        enum_map[request.cadence] != chore.cadence
+        or request.start_date != chore.start_date
+        or request.end_date != chore.end_date
+    )

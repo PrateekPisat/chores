@@ -19,6 +19,8 @@ class Chore(Base):
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
 
+    distributions = relationship("ChoreDistribution", uselist=True, back_populates="chore")
+
 
 class ChoreDistribution(Base):
     __tablename__ = "chore_distribution"

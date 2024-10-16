@@ -38,3 +38,18 @@ class Chore:
             user = User.user()
 
         return models.ChoreDistribution(chore=chore, user=user)
+
+    @staticmethod
+    def task(
+        chore_distribution: models.ChoreDistribution | None = None,
+        due_date: pendulum.Date | None = None,
+        completed_at: pendulum.DateTime | None = None,
+    ):
+        if not chore_distribution:
+            chore_distribution = Chore.distribution()
+
+        return models.Task(
+            chore_distribution=chore_distribution,
+            due_date=due_date or pendulum.now().date(),
+            completed_at=completed_at or pendulum.now(),
+        )
