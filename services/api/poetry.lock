@@ -465,6 +465,24 @@ docs = ["Sphinx", "furo"]
 test = ["objgraph", "psutil"]
 
 [[package]]
+name = "grpc-interceptor"
+version = "0.15.4"
+description = "Simplifies gRPC interceptors"
+optional = false
+python-versions = ">=3.7,<4.0"
+files = [
+    {file = "grpc-interceptor-0.15.4.tar.gz", hash = "sha256:1f45c0bcb58b6f332f37c637632247c9b02bc6af0fdceb7ba7ce8d2ebbfb0926"},
+    {file = "grpc_interceptor-0.15.4-py3-none-any.whl", hash = "sha256:0035f33228693ed3767ee49d937bac424318db173fef4d2d0170b3215f254d9d"},
+]
+
+[package.dependencies]
+grpcio = ">=1.49.1,<2.0.0"
+protobuf = {version = ">=4.21.9", optional = true, markers = "extra == \"testing\""}
+
+[package.extras]
+testing = ["protobuf (>=4.21.9)"]
+
+[[package]]
 name = "grpcio"
 version = "1.66.0"
 description = "HTTP/2-based RPC framework"
@@ -1625,4 +1643,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "21a4ea51458cc0ef2607c231eaad5318f2e9f60bac611f947b5c9c0f735597c2"
+content-hash = "271ca86d084d26612f04707b127726c485c482a090caa1893394ce59a7ff94cf"

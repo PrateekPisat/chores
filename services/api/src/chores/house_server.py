@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from chores.db import Database
 from chores.deps import Container
+from chores.errors import AlreadyExists, NotFound
 from chores.grpc_generated.chores_pb2 import (
     AddMemberResponse,
     AddMembersPayload,
@@ -26,6 +27,7 @@ from chores.grpc_generated.chores_pb2 import (
     UpdateResponse,
 )
 from chores.grpc_generated.chores_pb2_grpc import add_HouseServicer_to_server, HouseServicer
+from chores.interceptors import ExceptionToStatusInterceptor
 from chores.models.house import House, HouseMember
 from chores.users_server import _ONE_DAY_IN_SECONDS
 
@@ -50,9 +52,7 @@ class HouseServer(HouseServicer):
             house = db.query(House).filter(House.id == request.house_id).one_or_none()
 
         if not house:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details("House not found!")
-            return GetResponse()
+            raise NotFound("House not found!")
 
         return GetResponse(house_id=str(house.id), name=house.name)
 
@@ -64,9 +64,7 @@ class HouseServer(HouseServicer):
             house = db.query(House).filter(House.id == request.house_id).one_or_none()
 
             if not house:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details("House not found!")
-                return UpdateResponse()
+                raise NotFound("House not found!")
 
             house.name = request.name
             db.add(house)
@@ -82,9 +80,7 @@ class HouseServer(HouseServicer):
             house = db.query(House).filter(House.id == request.house_id).one_or_none()
 
             if not house:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details("House not found!")
-                return DeleteResponse()
+                raise NotFound("House not found!")
 
             db.delete(house)
             db.commit()
@@ -98,17 +94,13 @@ class HouseServer(HouseServicer):
         with database.session() as db:
             house = db.query(House).filter(House.id == request.house_id).one_or_none()
             if not house:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details("House not found!")
-                return AddMemberResponse()
+                raise NotFound("House not found!")
 
             users = db.query(HouseMember).filter(HouseMember.house_id == request.house_id).all()
             user_ids = {str(user.user_id) for user in users}
             for user_id in request.user_ids:
                 if user_id in user_ids:
-                    context.set_code(grpc.StatusCode.ALREADY_EXISTS)
-                    context.set_details(f"User {user_id} already exists in the house {request.house_id}!")
-                    return UpdateResponse()
+                    raise AlreadyExists(f"User {user_id} already exists in the house {request.house_id}!")
 
             members = [
                 HouseMember(house_id=uuid.UUID(request.house_id), user_id=uuid.UUID(user_ids))
@@ -118,9 +110,7 @@ class HouseServer(HouseServicer):
             try:
                 db.flush()
             except IntegrityError:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details("User not found!")
-                return AddMemberResponse()
+                raise NotFound("User not found!")
             db.commit()
 
             return AddMemberResponse(house_id=request.house_id, user_ids=request.user_ids)
@@ -153,7 +143,7 @@ def serve():
     container.init_resources()
     container.wire(modules=[__name__])
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=[ExceptionToStatusInterceptor()])
     add_HouseServicer_to_server(HouseServer(), server)
     server.add_insecure_port("[::]:50051")
     server.start()

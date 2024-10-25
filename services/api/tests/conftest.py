@@ -13,9 +13,11 @@ from chores.grpc_generated.chores_pb2_grpc import (
     UsersStub,
 )
 from chores.house_server import HouseServer
+from chores.interceptors import ExceptionToStatusInterceptor
 from chores.models.base import Base
 from chores.task_server import TaskServer
 from chores.users_server import UsersServer
+from grpc_interceptor import ServerInterceptor
 from pytest_mock_resources import create_postgres_fixture
 from sqlalchemy.orm import Session
 from sqlalchemy_model_factory import base, Registry
@@ -68,8 +70,13 @@ def container(config: Config, db: Session):
 
 
 @pytest.fixture
-def user_service(container: Container):
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+def interceptors():
+    return [ExceptionToStatusInterceptor()]
+
+
+@pytest.fixture
+def user_service(container: Container, interceptors: list[ServerInterceptor]):
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=interceptors)
     add_UsersServicer_to_server(UsersServer(), server)
     port = server.add_insecure_port("[::]:0")
     server.start()
@@ -82,8 +89,8 @@ def user_service(container: Container):
 
 
 @pytest.fixture
-def house_service(container: Container):
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+def house_service(container: Container, interceptors: list[ServerInterceptor]):
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=interceptors)
     add_HouseServicer_to_server(HouseServer(), server)
     port = server.add_insecure_port("[::]:0")
     server.start()
@@ -96,8 +103,8 @@ def house_service(container: Container):
 
 
 @pytest.fixture
-def task_service(container: Container):
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+def task_service(container: Container, interceptors: list[ServerInterceptor]):
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=interceptors)
     add_TaskServicer_to_server(TaskServer(), server)
     port = server.add_insecure_port("[::]:0")
     server.start()

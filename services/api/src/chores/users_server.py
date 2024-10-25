@@ -8,6 +8,7 @@ from sqlalchemy import and_
 
 from chores.db import Database
 from chores.deps import Container
+from chores.errors import NotFound
 from chores.grpc_generated.chores_pb2 import (
     DeleteUserPayload,
     DeleteUserResponse,
@@ -23,6 +24,7 @@ from chores.grpc_generated.chores_pb2 import (
     UpdateUserResponse,
 )
 from chores.grpc_generated.chores_pb2_grpc import add_UsersServicer_to_server, UsersServicer
+from chores.interceptors import ExceptionToStatusInterceptor
 from chores.models.user import User
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
@@ -46,7 +48,9 @@ class UsersServer(UsersServicer):
             return RegisterResponse(user_id=str(user.id))
 
     @inject
-    def Login(self, request: LoginPayload, context, database: Database = Provide[Container.database]) -> LoginResponse:
+    def Login(
+        self, request: LoginPayload, context: _Context, database: Database = Provide[Container.database]
+    ) -> LoginResponse:
         with database.session() as db:
             user = (
                 db.query(User)
@@ -54,22 +58,18 @@ class UsersServer(UsersServicer):
                 .one_or_none()
             )
         if not user:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details("Invalid email or password!")
-            return LoginResponse()
+            raise NotFound(details="Invalid email or password!")
 
         return LoginResponse(user_id=str(user.id), token="")
 
     @inject
     def GetUser(
-        self, request: GetUserPayload, context, database: Database = Provide[Container.database]
+        self, request: GetUserPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> GetUserResponse:
         with database.session() as db:
             user = db.query(User).filter(User.id == request.user_id).one_or_none()
         if not user:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details(f"User with user id: {request.user_id} not found!")
-            return GetUserResponse()
+            raise NotFound(details=f"User with user id: {request.user_id} not found!")
 
         return GetUserResponse(
             user_id=str(user.id),
@@ -80,14 +80,12 @@ class UsersServer(UsersServicer):
 
     @inject
     def UpdateUser(
-        self, request: UpdateUserPayload, context, database: Database = Provide[Container.database]
+        self, request: UpdateUserPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> UpdateUserResponse:
         with database.session() as db:
             user = db.query(User).filter(User.id == request.user_id).one_or_none()
             if not user:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"User with user id: {request.user_id} not found!")
-                return UpdateUserResponse()
+                raise NotFound(details=f"User with user id: {request.user_id} not found!")
 
             user.email = request.email
             user.first_name = request.first_name
@@ -99,14 +97,12 @@ class UsersServer(UsersServicer):
 
     @inject
     def DeleteUser(
-        self, request: DeleteUserPayload, context, database: Database = Provide[Container.database]
+        self, request: DeleteUserPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> DeleteUserResponse:
         with database.session() as db:
             user = db.query(User).filter(User.id == request.user_id).one_or_none()
             if not user:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"User with user id: {request.user_id} not found!")
-                return DeleteUserResponse()
+                raise NotFound(details=f"User with user id: {request.user_id} not found!")
 
             db.delete(user)
             db.commit()
@@ -135,7 +131,7 @@ def serve():
     container.init_resources()
     container.wire(modules=[__name__])
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=[ExceptionToStatusInterceptor()])
     add_UsersServicer_to_server(UsersServer(), server)
     server.add_insecure_port("[::]:50051")
     server.start()

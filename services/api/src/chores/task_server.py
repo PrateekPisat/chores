@@ -1,4 +1,6 @@
+import time
 import uuid
+from concurrent import futures
 from itertools import cycle, zip_longest
 
 import grpc
@@ -9,6 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from chores.db import Database
 from chores.deps import Container
+from chores.errors import NotFound
 from chores.grpc_generated.chores_pb2 import (
     Cadence,
     CreateChorePayload,
@@ -40,8 +43,10 @@ from chores.grpc_generated.chores_pb2 import (
 from chores.grpc_generated.chores_pb2 import (
     User as UserPayload,
 )
-from chores.grpc_generated.chores_pb2_grpc import TaskServicer
+from chores.grpc_generated.chores_pb2_grpc import add_TaskServicer_to_server, TaskServicer
+from chores.interceptors import ExceptionToStatusInterceptor
 from chores.models.chore import Chore, ChoreDistribution, Task
+from chores.users_server import _ONE_DAY_IN_SECONDS
 from chores.utils import distribution_needs_update, enum_mapper, get_intervals
 
 
@@ -73,9 +78,7 @@ class TaskServer(TaskServicer):
             chore = db.query(Chore).filter(Chore.id == request.id).one_or_none()
 
         if not chore:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details(f"Chore {request.id} not found!")
-            return GetChoreResponse()
+            raise NotFound(f"Chore {request.id} not found!")
 
         return GetChoreResponse(
             id=str(chore.id),
@@ -97,9 +100,7 @@ class TaskServer(TaskServicer):
             )
 
             if not chore:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"Chore {request.id} not found!")
-                return UpdateChoreResponse()
+                raise NotFound(f"Chore {request.id} not found!")
 
             needs_update = distribution_needs_update(chore, request, enum_map)
 
@@ -127,9 +128,7 @@ class TaskServer(TaskServicer):
             chore = db.query(Chore).filter(Chore.id == request.id).one_or_none()
 
             if not chore:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"Chore {request.id} not found!")
-                return DeleteChoreResponse()
+                raise NotFound(f"Chore {request.id} not found!")
 
             db.delete(chore)
             db.commit()
@@ -144,9 +143,7 @@ class TaskServer(TaskServicer):
             chore = db.query(Chore).filter(Chore.id == request.chore_id).one_or_none()
 
             if not chore:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"Chore {request.chore_id} not found!")
-                return CreateDistributionResponse()
+                raise NotFound(f"Chore {request.chore_id} not found!")
 
             distributions = [
                 ChoreDistribution(chore_id=uuid.UUID(request.chore_id), user_id=uuid.UUID(user_id))
@@ -174,9 +171,7 @@ class TaskServer(TaskServicer):
             chore = db.query(Chore).filter(Chore.id == request.id).one_or_none()
 
             if not chore:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"Chore {request.id} not found!")
-                return GetDistributionResponse()
+                raise NotFound(f"Chore {request.id} not found!")
 
             distributions = db.query(ChoreDistribution).filter(ChoreDistribution.chore_id == chore.id).all()
             return GetDistributionResponse(
@@ -207,9 +202,7 @@ class TaskServer(TaskServicer):
             chore = db.query(Chore).filter(Chore.id == request.chore_id).one_or_none()
 
             if not chore:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"Chore {request.chore_id} not found!")
-                return UpdateDistributionResponse()
+                raise NotFound(f"Chore {request.chore_id} not found!")
 
             db.execute(delete(ChoreDistribution).where(ChoreDistribution.chore_id == chore.id))
 
@@ -239,9 +232,7 @@ class TaskServer(TaskServicer):
             distributions = db.query(ChoreDistribution).filter(ChoreDistribution.chore_id == request.id).all()
 
             if not distributions:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"Chore {request.id} not found!")
-                return DeleteDistributionResponse()
+                raise NotFound(f"Chore {request.id} not found!")
 
             for distribution in distributions:
                 db.delete(distribution)
@@ -264,9 +255,7 @@ class TaskServer(TaskServicer):
             )
 
             if not task:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"Task {request.id} not found!")
-                return GetTaskResponse()
+                raise NotFound(f"Task {request.id} not found!")
 
             return GetTaskResponse(
                 id=str(task.id),
@@ -295,9 +284,7 @@ class TaskServer(TaskServicer):
             task = db.query(Task).filter(Task.id == request.id).one_or_none()
 
             if not task:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"Task {request.id} not found!")
-                return UpdateTaskResponse()
+                raise NotFound(f"Task {request.id} not found!")
 
             task.due_date = request.due_date
             task.completed_at = request.completed_at
@@ -314,11 +301,29 @@ class TaskServer(TaskServicer):
             task = db.query(Task).filter(Task.id == request.id).one_or_none()
 
             if not task:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"Task {request.id} not found!")
-                return DeleteTaskResponse()
+                raise NotFound(f"Task {request.id} not found!")
 
             db.delete(task)
             db.commit()
 
             return DeleteTaskResponse(id=str(task.id))
+
+
+def serve():
+    container = Container()
+    container.init_resources()
+    container.wire(modules=[__name__])
+
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=[ExceptionToStatusInterceptor()])
+    add_TaskServicer_to_server(TaskServer(), server)
+    server.add_insecure_port("[::]:50051")
+    server.start()
+    try:
+        while True:
+            time.sleep(_ONE_DAY_IN_SECONDS)
+    except KeyboardInterrupt:
+        server.stop(0)
+
+
+if __name__ == "__main__":
+    serve()
