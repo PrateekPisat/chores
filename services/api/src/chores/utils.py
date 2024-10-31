@@ -2,10 +2,12 @@ from collections.abc import Generator
 from datetime import date, timedelta
 from functools import cache
 
+import jwt
 from google.protobuf.internal import enum_type_wrapper
 
 from chores.grpc_generated.chores_pb2 import Cadence, UpdateChorePayload
 from chores.models.chore import Chore
+from chores.models.user import User
 
 CADENCE_MAP = {"DAILY": "days", "WEEKLY": "weeks", "MONTHLY": "months", "YEARLY": "years"}
 
@@ -27,3 +29,7 @@ def distribution_needs_update(chore: Chore, request: UpdateChorePayload, enum_ma
         or request.start_date != chore.start_date
         or request.end_date != chore.end_date
     )
+
+
+def get_token_payload(user: User, secret_key: str) -> str:
+    return jwt.encode({"sub": str(user.id), "name": user.name, "nickname": user.first_name}, secret_key)

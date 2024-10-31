@@ -3,6 +3,7 @@ import uuid
 import grpc
 import pendulum
 import pytest
+from chores.config import Config
 from chores.grpc_generated.chores_pb2 import (
     Cadence,
     CreateChorePayload,
@@ -18,16 +19,18 @@ from chores.grpc_generated.chores_pb2 import (
 )
 from chores.grpc_generated.chores_pb2_grpc import TaskStub
 from chores.models.chore import Chore, ChoreDistribution, Task
-from chores.utils import enum_mapper
+from chores.utils import enum_mapper, get_token_payload
 from sqlalchemy.orm import Session
 
 from tests.factories.base import ModelFactory
 
 
 class Test_Chores:
-    def test_it_creates_a_chore(self, task_service: TaskStub, db: Session):
+    def test_it_creates_a_chore(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
         now = pendulum.now()
 
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = CreateChorePayload(
             name="Chore 1",
             description="Chore 1 description",
@@ -36,7 +39,7 @@ class Test_Chores:
             end_date=now.add(days=7).date().isoformat(),
         )
 
-        response = task_service.CreateChore(request)
+        response = task_service.CreateChore(request, metadata=(("authorization", f"Bearer {token}"),))
         assert response.id
 
         chore = db.query(Chore).filter(Chore.id == response.id).one_or_none()
@@ -46,11 +49,13 @@ class Test_Chores:
         assert chore.cadence == "DAILY"
         assert chore.start_date
 
-    def test_it_gets_a_chore(self, task_service: TaskStub, db: Session, mf: ModelFactory):
+    def test_it_gets_a_chore(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
         chore = mf.chore.chore()
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = GetChorePayload(id=str(chore.id))
 
-        response = task_service.GetChore(request)
+        response = task_service.GetChore(request, metadata=(("authorization", f"Bearer {token}"),))
 
         enum_map = enum_mapper(Cadence)
         assert response.id == str(chore.id)
@@ -60,18 +65,22 @@ class Test_Chores:
         assert response.start_date == str(chore.start_date)
         assert response.end_date == str(chore.end_date)
 
-    def test_it_raises_on_missing_chore(self, task_service: TaskStub):
+    def test_it_raises_on_missing_chore(self, task_service: TaskStub, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = GetChorePayload(id=str(uuid.uuid4()))
 
         with pytest.raises(grpc._channel._InactiveRpcError) as e:
-            task_service.GetChore(request)
+            task_service.GetChore(request, metadata=(("authorization", f"Bearer {token}"),))
 
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.NOT_FOUND
         assert exception.details() == f"Chore {request.id} not found!"
 
-    def test_it_updates_a_chore(self, task_service: TaskStub, db: Session, mf: ModelFactory):
+    def test_it_updates_a_chore(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
         chore = mf.chore.chore()
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateChorePayload(
             id=str(chore.id),
             name="Chore 2",
@@ -81,7 +90,7 @@ class Test_Chores:
             end_date=pendulum.now().add(days=7).date().isoformat(),
         )
 
-        response = task_service.UpdateChore(request)
+        response = task_service.UpdateChore(request, metadata=(("authorization", f"Bearer {token}"),))
 
         assert response.id == str(chore.id)
 
@@ -93,12 +102,16 @@ class Test_Chores:
         assert chore.start_date.isoformat() == request.start_date
         assert chore.end_date.isoformat() == request.end_date
 
-    def test_it_updates_a_chore_with_distribution(self, task_service: TaskStub, db: Session, mf: ModelFactory):
+    def test_it_updates_a_chore_with_distribution(
+        self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory
+    ):
         now = pendulum.now()
+        user = mf.user.user(email="test@example.com")
         chore = mf.chore.chore(cadence="DAILY", start_date=now.date(), end_date=now.add(days=7).date())
         user = mf.user.user()
         mf.chore.distribution(chore=chore, user=user)
 
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateChorePayload(
             id=str(chore.id),
             name="Chore 2",
@@ -107,7 +120,7 @@ class Test_Chores:
             start_date=pendulum.now().date().isoformat(),
             end_date=pendulum.now().add(weeks=2).date().isoformat(),
         )
-        response = task_service.UpdateChore(request)
+        response = task_service.UpdateChore(request, metadata=(("authorization", f"Bearer {token}"),))
 
         assert response.id == str(chore.id)
 
@@ -131,7 +144,9 @@ class Test_Chores:
         for i, task in enumerate(tasks, start=1):
             assert task.due_date == now.add(weeks=i).date()
 
-    def test_it_raises_on_missing_chore_for_update(self, task_service: TaskStub):
+    def test_it_raises_on_missing_chore_for_update(self, task_service: TaskStub, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateChorePayload(
             id=str(uuid.uuid4()),
             name="Chore 2",
@@ -141,27 +156,31 @@ class Test_Chores:
         )
 
         with pytest.raises(grpc._channel._InactiveRpcError) as e:
-            task_service.UpdateChore(request)
+            task_service.UpdateChore(request, metadata=(("authorization", f"Bearer {token}"),))
 
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.NOT_FOUND
         assert exception.details() == f"Chore {request.id} not found!"
 
-    def test_it_deletes_a_chore(self, task_service: TaskStub, db: Session, mf: ModelFactory):
+    def test_it_deletes_a_chore(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
         chore = mf.chore.chore()
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateChorePayload(id=str(chore.id))
 
-        response = task_service.DeleteChore(request)
+        response = task_service.DeleteChore(request, metadata=(("authorization", f"Bearer {token}"),))
         assert response.id == str(chore.id)
 
         chore = db.query(Chore).filter(Chore.id == chore.id).one_or_none()
         assert chore is None
 
-    def test_it_raises_on_missing_chore_for_delete(self, task_service: TaskStub):
+    def test_it_raises_on_missing_chore_for_delete(self, task_service: TaskStub, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateChorePayload(id=str(uuid.uuid4()))
 
         with pytest.raises(grpc._channel._InactiveRpcError) as e:
-            task_service.DeleteChore(request)
+            task_service.DeleteChore(request, metadata=(("authorization", f"Bearer {token}"),))
 
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.NOT_FOUND
@@ -169,14 +188,16 @@ class Test_Chores:
 
 
 class Test_ChoreDistribution:
-    def test_it_distributes_a_chore(self, task_service: TaskStub, db: Session, mf: ModelFactory):
+    def test_it_distributes_a_chore(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
         now = pendulum.now()
+        user = mf.user.user(email="test@example.com")
         chore = mf.chore.chore(start_date=now.date(), end_date=now.add(days=7).date(), cadence="DAILY")
         user1 = mf.user.user()
         user2 = mf.user.user()
 
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = CreateDistributionPayload(chore_id=str(chore.id), user_ids=[str(user1.id), str(user2.id)])
-        response = task_service.CreateDistribution(request)
+        response = task_service.CreateDistribution(request, metadata=(("authorization", f"Bearer {token}"),))
 
         assert response.id == str(chore.id)
 
@@ -198,23 +219,31 @@ class Test_ChoreDistribution:
             assert task.chore_distribution_id in [c.id for c in chore_distribution]
             assert task.due_date == now.add(days=i).date()
 
-    def test_it_raises_on_missing_chore_for_distribution(self, task_service: TaskStub):
+    def test_it_raises_on_missing_chore_for_distribution(
+        self, task_service: TaskStub, config: Config, mf: ModelFactory
+    ):
+        user = mf.user.user(email="test@example.com")
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = CreateDistributionPayload(chore_id=str(uuid.uuid4()), user_ids=[str(uuid.uuid4())])
 
         with pytest.raises(grpc._channel._InactiveRpcError) as e:
-            task_service.CreateDistribution(request)
+            task_service.CreateDistribution(request, metadata=(("authorization", f"Bearer {token}"),))
 
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.NOT_FOUND
         assert exception.details() == f"Chore {request.chore_id} not found!"
 
-    def test_it_gets_a_distribution(self, task_service: TaskStub, db: Session, mf: ModelFactory):
+    def test_it_gets_a_distribution(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
         chore = mf.chore.chore(cadence="DAILY")
         user = mf.user.user()
         mf.chore.distribution(chore=chore, user=user)
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = GetDistributionPayload(id=str(chore.id))
 
-        response: GetDistributionResponse = task_service.GetDistribution(request)
+        response: GetDistributionResponse = task_service.GetDistribution(
+            request, metadata=(("authorization", f"Bearer {token}"),)
+        )
 
         assert response
         assert response.chore.id == str(chore.id)
@@ -230,25 +259,29 @@ class Test_ChoreDistribution:
         assert response.users[0].first_name == user.first_name
         assert response.users[0].last_name == user.last_name
 
-    def test_it_raises_on_missing_distribution(self, task_service: TaskStub):
+    def test_it_raises_on_missing_distribution(self, task_service: TaskStub, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = GetDistributionPayload(id=str(uuid.uuid4()))
 
         with pytest.raises(grpc._channel._InactiveRpcError) as e:
-            task_service.GetDistribution(request)
+            task_service.GetDistribution(request, metadata=(("authorization", f"Bearer {token}"),))
 
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.NOT_FOUND
         assert exception.details() == f"Chore {request.id} not found!"
 
-    def test_it_updates_distribution(self, task_service: TaskStub, db: Session, mf: ModelFactory):
+    def test_it_updates_distribution(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
         now = pendulum.now()
         chore = mf.chore.chore(cadence="DAILY", start_date=now.date(), end_date=now.add(days=7).date())
         user1 = mf.user.user()
         user2 = mf.user.user()
         mf.chore.distribution(chore=chore, user=user1)
 
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateDistributionPayload(chore_id=str(chore.id), user_ids=[str(user1.id), str(user2.id)])
-        response = task_service.UpdateDistribution(request)
+        response = task_service.UpdateDistribution(request, metadata=(("authorization", f"Bearer {token}"),))
 
         assert response.id == str(chore.id)
 
@@ -270,34 +303,40 @@ class Test_ChoreDistribution:
             assert task.chore_distribution_id in [c.id for c in chore_distribution]
             assert task.due_date == now.add(days=i).date()
 
-    def test_it_raises_on_missing_chore_for_update(self, task_service: TaskStub):
+    def test_it_raises_on_missing_chore_for_update(self, task_service: TaskStub, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateDistributionPayload(chore_id=str(uuid.uuid4()), user_ids=[str(uuid.uuid4())])
 
         with pytest.raises(grpc._channel._InactiveRpcError) as e:
-            task_service.UpdateDistribution(request)
+            task_service.UpdateDistribution(request, metadata=(("authorization", f"Bearer {token}"),))
 
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.NOT_FOUND
         assert exception.details() == f"Chore {request.chore_id} not found!"
 
-    def test_it_deletes_distribution(self, task_service: TaskStub, db: Session, mf: ModelFactory):
+    def test_it_deletes_distribution(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
         chore = mf.chore.chore(cadence="DAILY")
         user = mf.user.user()
         mf.chore.distribution(chore=chore, user=user)
 
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = DeleteDistributionPayload(id=str(chore.id))
-        response = task_service.DeleteDistribution(request)
+        response = task_service.DeleteDistribution(request, metadata=(("authorization", f"Bearer {token}"),))
 
         assert response.id == str(chore.id)
 
         chore_distribution = db.query(ChoreDistribution).filter(ChoreDistribution.chore_id == chore.id).all()
         assert len(chore_distribution) == 0
 
-    def test_it_raises_on_missing_chore_for_delete(self, task_service: TaskStub):
+    def test_it_raises_on_missing_chore_for_delete(self, task_service: TaskStub, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = DeleteDistributionPayload(id=str(uuid.uuid4()))
 
         with pytest.raises(grpc._channel._InactiveRpcError) as e:
-            task_service.DeleteDistribution(request)
+            task_service.DeleteDistribution(request, metadata=(("authorization", f"Bearer {token}"),))
 
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.NOT_FOUND
@@ -305,15 +344,17 @@ class Test_ChoreDistribution:
 
 
 class Test_Task:
-    def test_it_gets_a_task(self, task_service: TaskStub, db: Session, mf: ModelFactory):
+    def test_it_gets_a_task(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
         now = pendulum.now()
         chore = mf.chore.chore(cadence="DAILY", start_date=now.date(), end_date=now.add(days=1).date())
         user = mf.user.user()
         distribution = mf.chore.distribution(chore=chore, user=user)
         task = mf.chore.task(chore_distribution=distribution)
 
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = GetTaskPayload(id=str(task.id))
-        response = task_service.GetTask(request)
+        response = task_service.GetTask(request, metadata=(("authorization", f"Bearer {token}"),))
 
         assert response
         assert response.id == str(task.id)
@@ -330,29 +371,33 @@ class Test_Task:
         assert response.chore.start_date == chore.start_date.isoformat()
         assert response.chore.end_date == chore.end_date.isoformat()
 
-    def test_it_raises_on_missing_task(self, task_service: TaskStub):
+    def test_it_raises_on_missing_task(self, task_service: TaskStub, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = GetTaskPayload(id=str(uuid.uuid4()))
 
         with pytest.raises(grpc._channel._InactiveRpcError) as e:
-            task_service.GetTask(request)
+            task_service.GetTask(request, metadata=(("authorization", f"Bearer {token}"),))
 
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.NOT_FOUND
         assert exception.details() == f"Task {request.id} not found!"
 
-    def test_it_updates_a_task(self, task_service: TaskStub, db: Session, mf: ModelFactory):
+    def test_it_updates_a_task(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
         now = pendulum.now()
         chore = mf.chore.chore(cadence="DAILY", start_date=now.date(), end_date=now.add(days=1).date())
         user = mf.user.user()
         distribution = mf.chore.distribution(chore=chore, user=user)
         task = mf.chore.task(chore_distribution=distribution)
 
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateTaskPayload(
             id=str(task.id),
             due_date=now.add(days=2).date().isoformat(),
             completed_at=now.add(days=1).isoformat(),
         )
-        response = task_service.UpdateTask(request)
+        response = task_service.UpdateTask(request, metadata=(("authorization", f"Bearer {token}"),))
 
         assert response.id == str(task.id)
 
@@ -364,7 +409,9 @@ class Test_Task:
             pendulum.instance(tasks[0].completed_at).in_timezone("America/New_York").isoformat() == request.completed_at
         )
 
-    def test_it_raises_on_missing_task_for_update(self, task_service: TaskStub):
+    def test_it_raises_on_missing_task_for_update(self, task_service: TaskStub, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateTaskPayload(
             id=str(uuid.uuid4()),
             due_date=pendulum.now().add(days=2).date().isoformat(),
@@ -372,32 +419,36 @@ class Test_Task:
         )
 
         with pytest.raises(grpc._channel._InactiveRpcError) as e:
-            task_service.UpdateTask(request)
+            task_service.UpdateTask(request, metadata=(("authorization", f"Bearer {token}"),))
 
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.NOT_FOUND
         assert exception.details() == f"Task {request.id} not found!"
 
-    def test_it_deletes_a_task(self, task_service: TaskStub, db: Session, mf: ModelFactory):
+    def test_it_deletes_a_task(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
         now = pendulum.now()
         chore = mf.chore.chore(cadence="DAILY", start_date=now.date(), end_date=now.add(days=1).date())
         user = mf.user.user()
         distribution = mf.chore.distribution(chore=chore, user=user)
         task = mf.chore.task(chore_distribution=distribution)
 
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateTaskPayload(id=str(task.id))
-        response = task_service.DeleteTask(request)
+        response = task_service.DeleteTask(request, metadata=(("authorization", f"Bearer {token}"),))
 
         assert response.id == str(task.id)
 
         tasks = db.query(Task).filter(Task.id == task.id).all()
         assert len(tasks) == 0
 
-    def test_it_raises_on_missing_task_for_delete(self, task_service: TaskStub):
+    def test_it_raises_on_missing_task_for_delete(self, task_service: TaskStub, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
+        token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateTaskPayload(id=str(uuid.uuid4()))
 
         with pytest.raises(grpc._channel._InactiveRpcError) as e:
-            task_service.DeleteTask(request)
+            task_service.DeleteTask(request, metadata=(("authorization", f"Bearer {token}"),))
 
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.NOT_FOUND

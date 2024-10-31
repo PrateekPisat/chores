@@ -12,3 +12,7 @@ class AlreadyExists(GrpcException):
 
 class Unauthenticated(GrpcException):
     status_code = grpc.StatusCode.UNAUTHENTICATED
+
+
+class PermissionDenied(GrpcException):
+    status_code = grpc.StatusCode.PERMISSION_DENIED

@@ -1,10 +1,14 @@
 from collections.abc import Callable
 
-import grpc
+import jwt
+from dependency_injector.wiring import inject, Provide
 from grpc._server import _Context
 from grpc_interceptor import ServerInterceptor
 from grpc_interceptor.exceptions import GrpcException
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
+from chores.config import Config
+from chores.deps import Container
 from chores.errors import Unauthenticated
 
 
@@ -13,7 +17,7 @@ class ExceptionToStatusInterceptor(ServerInterceptor):
         self,
         method: Callable,
         request_or_iterator,
-        context: grpc.ServicerContext,
+        context: _Context,
         method_name: str,
     ):
         try:
@@ -25,25 +29,32 @@ class ExceptionToStatusInterceptor(ServerInterceptor):
 
 
 class AuthInterceptor(ServerInterceptor):
+    @inject
     def intercept(
         self,
         method: Callable,
         request_or_iterator,
         context: _Context,
         method_name: str,
+        config: Config = Provide[Container.config],
     ):
-        metadata = context.invocation_metadata()
-        endpoint = method_name.split("/")[-1]
+        if method_name == "/chores.Users/Login" or method_name == "/chores.Users/Register":
+            return method(request_or_iterator, context)
 
-        # Check if metadata is empty
+        metadata = context.invocation_metadata()
         if metadata is None or len(metadata) == 0:
-            raise Unauthenticated("Missing Token")
+            raise Unauthenticated("Missing token")
 
         # Grab token
-        token = get_token_from_metadata(metadata)
+        try:
+            token_metadata = next(datum for datum in metadata if datum.key.lower() == "authorization")
+            token = token_metadata.value.removeprefix("Bearer ")
+            jwt.decode(token, config.cryptography.secret_key, algorithms=["HS256"])
+        except ExpiredSignatureError:
+            raise Unauthenticated("Token has expired")
+        except InvalidTokenError:
+            raise Unauthenticated("Invalid token")
+        except StopIteration:
+            raise Unauthenticated("Missing token")
 
-        # Use token to check permissions of user or service
-        authed = check_user_auth(ENDPOINT_TO_PERM[endpoint], token)
-        if not authed:
-            raise Unauthenticated("You don't have access to this resource.")
         return method(request_or_iterator, context)

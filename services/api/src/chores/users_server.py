@@ -26,6 +26,7 @@ from chores.grpc_generated.chores_pb2 import (
 from chores.grpc_generated.chores_pb2_grpc import add_UsersServicer_to_server, UsersServicer
 from chores.interceptors import ExceptionToStatusInterceptor
 from chores.models.user import User
+from chores.utils import get_token_payload
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
@@ -49,7 +50,11 @@ class UsersServer(UsersServicer):
 
     @inject
     def Login(
-        self, request: LoginPayload, context: _Context, database: Database = Provide[Container.database]
+        self,
+        request: LoginPayload,
+        context: _Context,
+        database: Database = Provide[Container.database],
+        config=Provide[Container.config],
     ) -> LoginResponse:
         with database.session() as db:
             user = (
@@ -60,7 +65,8 @@ class UsersServer(UsersServicer):
         if not user:
             raise NotFound(details="Invalid email or password!")
 
-        return LoginResponse(user_id=str(user.id), token="")
+        token = get_token_payload(user, config.cryptography.secret_key)
+        return LoginResponse(user_id=str(user.id), token=token)
 
     @inject
     def GetUser(

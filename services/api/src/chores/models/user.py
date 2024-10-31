@@ -28,3 +28,7 @@ class User(Base):
             "last_name": self.last_name,
             "email": self.email,
         }
+
+    @property
+    def name(self) -> str:
+        return f"{self.first_name} {self.last_name}"

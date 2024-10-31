@@ -21,6 +21,7 @@ dependency-injector = "^4.42.0"
 pydantic-settings = "^2.5.2"
 pendulum = "^3.0.0"
 grpc-interceptor = {version = "^0.15.4", extras = ["testing"]}
+pyjwt = {version = "^2.9.0", extras = ["crypto"]}
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.2"
@@ -31,6 +32,7 @@ pytest-mock-resources = {version = "^2.12.1", extras = ["postgres-binary", "dock
 sqlalchemy-model-factory = "^0.4.6"
 faker = "^30.0.0"
 coverage = "^7.6.1"
+trustme = "^1.2.0"
 
 [tool.ruff]
 extend = '../../ruff.toml'

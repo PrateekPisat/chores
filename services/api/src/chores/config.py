@@ -9,6 +9,7 @@ from pydantic import BaseModel
 class Config(BaseModel):
     logging: LoggingConfig
     postgres: PostgresConfig
+    cryptography: CryptographyConfig
 
     environment: Annotated[str | None, Env("ENVIRONMENT")] = None
 
@@ -25,6 +26,10 @@ class PostgresConfig(BaseModel):
 
     port: Annotated[int, Env("DATABASE_PORT")] = 5432
     drivername: str = "postgresql+psycopg2"
+
+
+class CryptographyConfig(BaseModel):
+    secret_key: Annotated[str, Env("SECRET_KEY")]
 
 
 def load_config():

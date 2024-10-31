@@ -4,3 +4,8 @@
 .DS_Store
 
 .coverage
+*.crt
+*.csr
+*.key
+*.srl
+certs/*.conf
