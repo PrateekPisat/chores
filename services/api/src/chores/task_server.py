@@ -6,6 +6,7 @@ from itertools import cycle, zip_longest
 import grpc
 from dependency_injector.wiring import inject, Provide
 from grpc._server import _Context
+from setuplog import log, setup_logging
 from sqlalchemy import delete
 from sqlalchemy.orm import selectinload
 
@@ -313,11 +314,18 @@ def serve():
     container = Container()
     container.init_resources()
     container.wire(modules=[__name__])
+    config = container.config()
+    setup_logging(
+        log_level=config.logging.level,
+        namespace="chores.task_server",
+        style=" %(name)s :: %(levelname)-8s :: %(message)s",
+    )
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=[ExceptionToStatusInterceptor()])
     add_TaskServicer_to_server(TaskServer(), server)
-    server.add_insecure_port("[::]:50051")
+    server.add_insecure_port(f"[::]:{config.task_service_port}")
     server.start()
+    log.info("Task server started on port %s", config.task_service_port)
     try:
         while True:
             time.sleep(_ONE_DAY_IN_SECONDS)

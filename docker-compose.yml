@@ -9,6 +9,63 @@ services:
       POSTGRES_DB: "chores"
     volumes:
       - postgres:/data/db/postgres
+    
+  task_service:
+    build:
+      context: ./services/api/
+      dockerfile: Dockerfile
+    command: ["poetry", "run", "python", "/service/src/chores/task_server.py"]
+    ports:
+      - "50053:50053"
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      LOGGING_LEVEL: "INFO"
+      DATABASE_HOST: "postgres"
+      DATABASE_USERNAME: "postgres"
+      DATABASE_PASSWORD: "postgres"
+      DATABASE_DATABASE: "chores"
+      DATABASE_PORT: 5432
+      SECRET_KEY: "${SECRET_KEY}"
+    depends_on:
+      - postgres
+    
+  users_service:
+    build:
+      context: ./services/api/
+      dockerfile: Dockerfile
+    command: ["poetry", "run", "python", "/service/src/chores/users_server.py"]
+    ports:
+      - "50051:50051"
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      LOGGING_LEVEL: "INFO"
+      DATABASE_HOST: "postgres"
+      DATABASE_USERNAME: "postgres"
+      DATABASE_PASSWORD: "postgres"
+      DATABASE_DATABASE: "chores"
+      DATABASE_PORT: 5432
+      SECRET_KEY: "${SECRET_KEY}"
+    depends_on:
+      - postgres
+  
+  house_service:
+    build:
+      context: ./services/api/
+      dockerfile: Dockerfile
+    command: ["poetry", "run", "python", "/service/src/chores/house_server.py"]
+    ports:
+      - "50052:50052"
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      LOGGING_LEVEL: "INFO"
+      DATABASE_HOST: "postgres"
+      DATABASE_USERNAME: "postgres"
+      DATABASE_PASSWORD: "postgres"
+      DATABASE_DATABASE: "chores"
+      DATABASE_PORT: 5432
+      SECRET_KEY: "${SECRET_KEY}"
+    depends_on:
+      - postgres
 
 volumes:
   postgres:

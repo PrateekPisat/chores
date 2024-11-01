@@ -12,6 +12,9 @@ class Config(BaseModel):
     cryptography: CryptographyConfig
 
     environment: Annotated[str | None, Env("ENVIRONMENT")] = None
+    user_service_port: Annotated[int, Env("USER_SERVICE_PORT")] = 50051
+    house_service_port: Annotated[int, Env("HOUSE_SERVICE_PORT")] = 50052
+    task_service_port: Annotated[int, Env("TASK_SERVICE_PORT")] = 50053
 
 
 class LoggingConfig(BaseModel):

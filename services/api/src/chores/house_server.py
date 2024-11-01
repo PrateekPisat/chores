@@ -5,6 +5,7 @@ from concurrent import futures
 import grpc
 from dependency_injector.wiring import inject, Provide
 from grpc._server import _Context
+from setuplog import log, setup_logging
 from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
 
@@ -142,11 +143,18 @@ def serve():
     container = Container()
     container.init_resources()
     container.wire(modules=[__name__])
+    config = container.config()
+    setup_logging(
+        log_level=config.logging.level,
+        namespace="chores.house_server",
+        style=" %(name)s :: %(levelname)-8s :: %(message)s",
+    )
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=[ExceptionToStatusInterceptor()])
     add_HouseServicer_to_server(HouseServer(), server)
-    server.add_insecure_port("[::]:50051")
+    server.add_insecure_port(f"[::]:{config.house_service_port}")
     server.start()
+    log.info(f"House server started on port {config.house_service_port}")
     try:
         while True:
             time.sleep(_ONE_DAY_IN_SECONDS)
