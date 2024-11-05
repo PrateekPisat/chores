@@ -32,4 +32,12 @@ def distribution_needs_update(chore: Chore, request: UpdateChorePayload, enum_ma
 
 
 def get_token_payload(user: User, secret_key: str) -> str:
-    return jwt.encode({"sub": str(user.id), "name": user.name, "nickname": user.first_name}, secret_key)
+    return jwt.encode(
+        {
+            "sub": str(user.id),
+            "name": user.name,
+            "nickname": user.first_name,
+            "exp": 1730489220,
+        },
+        secret_key,
+    )

@@ -25,7 +25,7 @@ class ExceptionToStatusInterceptor(ServerInterceptor):
         except GrpcException as e:
             context.set_code(e.status_code)
             context.set_details(e.details)
-            raise
+            raise e
 
 
 class AuthInterceptor(ServerInterceptor):
@@ -45,11 +45,12 @@ class AuthInterceptor(ServerInterceptor):
         if metadata is None or len(metadata) == 0:
             raise Unauthenticated("Missing token")
 
-        # Grab token
         try:
             token_metadata = next(datum for datum in metadata if datum.key.lower() == "authorization")
             token = token_metadata.value.removeprefix("Bearer ")
-            jwt.decode(token, config.cryptography.secret_key, algorithms=["HS256"])
+            jwt.decode(
+                token, config.cryptography.secret_key, algorithms=["HS256"]
+            )  # Replace with a better algo, check for expiration
         except ExpiredSignatureError:
             raise Unauthenticated("Token has expired")
         except InvalidTokenError:
