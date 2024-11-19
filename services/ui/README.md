@@ -1,4 +1,4 @@
-# chores (chores)
+# Chores (ui)
 
 A Quasar Project
 
