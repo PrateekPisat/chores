@@ -6,17 +6,21 @@ from itertools import cycle, zip_longest
 import grpc
 from dependency_injector.wiring import inject, Provide
 from grpc._server import _Context
+from pydantic import ValidationError
 from setuplog import log, setup_logging
 from sqlalchemy import delete
 from sqlalchemy.orm import selectinload
 
+from chores import schema
 from chores.db import Database
 from chores.deps import Container
 from chores.errors import NotFound
 from chores.grpc_generated.chores_pb2 import (
     Cadence,
+    CreateChoreErrorsResponse,
     CreateChorePayload,
     CreateChoreResponse,
+    CreateDistributionErrorResponse,
     CreateDistributionPayload,
     CreateDistributionResponse,
     DeleteChorePayload,
@@ -31,6 +35,7 @@ from chores.grpc_generated.chores_pb2 import (
     GetDistributionResponse,
     GetTaskPayload,
     GetTaskResponse,
+    UpdateChoreErrorsResponse,
     UpdateChorePayload,
     UpdateChoreResponse,
     UpdateDistributionPayload,
@@ -48,10 +53,24 @@ from chores.grpc_generated.chores_pb2_grpc import add_TaskServicer_to_server, Ta
 from chores.interceptors import ExceptionToStatusInterceptor
 from chores.models.chore import Chore, ChoreDistribution, Task
 from chores.users_server import _ONE_DAY_IN_SECONDS
-from chores.utils import distribution_needs_update, enum_mapper, get_intervals
+from chores.utils import distribution_needs_update, enum_mapper, get_intervals, parse_errors
 
 
 class TaskServer(TaskServicer):
+    def ValidateCreateChorePayload(self, request: CreateChorePayload, context: _Context) -> CreateChoreErrorsResponse:
+        try:
+            schema.CreateChorePayload(
+                name=request.name,
+                description=request.description,
+                cadence=request.cadence,
+                start_date=request.start_date,
+                end_date=request.end_date,
+            )
+        except ValidationError as e:
+            return CreateChoreErrorsResponse(**parse_errors(e))
+
+        return CreateChoreErrorsResponse()
+
     @inject
     def CreateChore(
         self, request: CreateChorePayload, context: _Context, database: Database = Provide[Container.database]
@@ -89,6 +108,21 @@ class TaskServer(TaskServicer):
             start_date=chore.start_date.isoformat(),
             end_date=chore.end_date.isoformat(),
         )
+
+    def ValidateUpdateChorePayload(self, request: UpdateChorePayload, context: _Context) -> UpdateChoreErrorsResponse:
+        try:
+            schema.UpdateChorePayload(
+                id=request.id,
+                name=request.name,
+                description=request.description,
+                cadence=request.cadence,
+                start_date=request.start_date,
+                end_date=request.end_date,
+            )
+        except ValidationError as e:
+            return UpdateChoreErrorsResponse(**parse_errors(e))
+
+        return UpdateChoreErrorsResponse()
 
     @inject
     def UpdateChore(
@@ -135,6 +169,16 @@ class TaskServer(TaskServicer):
             db.commit()
 
             return DeleteChoreResponse(id=str(chore.id))
+
+    def ValidateCreateDistributionPayload(
+        self, request: CreateDistributionPayload, context: _Context
+    ) -> CreateDistributionErrorResponse:
+        try:
+            CreateDistributionPayload(chore_id=request.chore_id, user_ids=request.user_ids)
+        except ValidationError as e:
+            return CreateDistributionErrorResponse(**parse_errors(e))
+
+        return CreateDistributionErrorResponse()
 
     @inject
     def CreateDistribution(
@@ -194,6 +238,16 @@ class TaskServer(TaskServicer):
                     for distribution in distributions
                 ],
             )
+
+    def ValidateUpdateDistributionPayload(
+        self, request: UpdateDistributionPayload, context: _Context
+    ) -> CreateDistributionErrorResponse:
+        try:
+            schema.UpdateDistributionPayload(chore_id=request.chore_id, user_ids=request.user_ids)
+        except ValidationError as e:
+            return CreateDistributionErrorResponse(**parse_errors(e))
+
+        return CreateDistributionErrorResponse()
 
     @inject
     def UpdateDistribution(

@@ -11,6 +11,13 @@ from chores.config import Config
 from chores.deps import Container
 from chores.errors import Unauthenticated
 
+UNAUTHENTICATED_ROUTES = [
+    "/chores.Users/Login",
+    "/chores.Users/Register",
+    "/chores.Users/ValidateRegisterPayload",
+    "/chores.Users/ValidateLoginPayload",
+]
+
 
 class ExceptionToStatusInterceptor(ServerInterceptor):
     def intercept(
@@ -38,7 +45,7 @@ class AuthInterceptor(ServerInterceptor):
         method_name: str,
         config: Config = Provide[Container.config],
     ):
-        if method_name == "/chores.Users/Login" or method_name == "/chores.Users/Register":
+        if method_name in UNAUTHENTICATED_ROUTES:
             return method(request_or_iterator, context)
 
         metadata = context.invocation_metadata()

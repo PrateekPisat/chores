@@ -23,6 +23,7 @@ pendulum = "^3.0.0"
 grpc-interceptor = {version = "^0.15.4", extras = ["testing"]}
 pyjwt = {version = "^2.9.0", extras = ["crypto"]}
 setuplog = "^0.4.1"
+email-validator = "^2.2.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.2"

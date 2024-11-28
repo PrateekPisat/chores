@@ -4,6 +4,7 @@ from concurrent import futures
 import grpc
 from dependency_injector.wiring import inject, Provide
 from grpc._server import _Context
+from pydantic import ValidationError
 from setuplog import log, setup_logging
 from sqlalchemy import and_
 
@@ -17,6 +18,7 @@ from chores.grpc_generated.chores_pb2 import (
     GetUserResponse,
     LoginPayload,
     LoginResponse,
+    RegisterErrorResponse,
     RegisterPayload,
     RegisterResponse,
     SearchUserPayload,
@@ -27,15 +29,34 @@ from chores.grpc_generated.chores_pb2 import (
 from chores.grpc_generated.chores_pb2_grpc import add_UsersServicer_to_server, UsersServicer
 from chores.interceptors import ExceptionToStatusInterceptor
 from chores.models.user import User
-from chores.utils import get_token_payload
+from chores.schema import RegisterUserPayload
+from chores.utils import get_token_payload, parse_errors
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
 
 class UsersServer(UsersServicer):
+    def ValidateRegisterPayload(self, request: RegisterPayload, context: _Context) -> RegisterErrorResponse:
+        try:
+            RegisterUserPayload(
+                email=request.email,
+                password=request.password,
+                confirm_password=request.confirm_password,
+                first_name=request.first_name,
+                last_name=request.last_name,
+            )
+        except ValidationError as e:
+            return RegisterErrorResponse(**parse_errors(e))
+
+        return RegisterErrorResponse()
+
     @inject
     def Register(
-        self, request: RegisterPayload, context: _Context, database: Database = Provide[Container.database]
+        self,
+        request: RegisterPayload,
+        context: _Context,
+        database: Database = Provide[Container.database],
+        config=Provide[Container.config],
     ) -> RegisterResponse:
         user = User(
             email=request.email,
@@ -47,7 +68,8 @@ class UsersServer(UsersServicer):
             postgres.add(user)
             postgres.commit()
 
-            return RegisterResponse(user_id=str(user.id))
+            token = get_token_payload(user, config.cryptography.secret_key)
+            return RegisterResponse(user_id=str(user.id), token=token)
 
     @inject
     def Login(

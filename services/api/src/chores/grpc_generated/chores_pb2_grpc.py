@@ -43,6 +43,12 @@ class TaskStub(object):
             response_deserializer=chores__pb2.CreateChoreResponse.FromString,
             _registered_method=True,
         )
+        self.ValidateCreateChorePayload = channel.unary_unary(
+            "/chores.Task/ValidateCreateChorePayload",
+            request_serializer=chores__pb2.CreateChorePayload.SerializeToString,
+            response_deserializer=chores__pb2.CreateChoreErrorsResponse.FromString,
+            _registered_method=True,
+        )
         self.GetChore = channel.unary_unary(
             "/chores.Task/GetChore",
             request_serializer=chores__pb2.GetChorePayload.SerializeToString,
@@ -53,6 +59,12 @@ class TaskStub(object):
             "/chores.Task/UpdateChore",
             request_serializer=chores__pb2.UpdateChorePayload.SerializeToString,
             response_deserializer=chores__pb2.UpdateChoreResponse.FromString,
+            _registered_method=True,
+        )
+        self.ValidateUpdateChorePayload = channel.unary_unary(
+            "/chores.Task/ValidateUpdateChorePayload",
+            request_serializer=chores__pb2.UpdateChorePayload.SerializeToString,
+            response_deserializer=chores__pb2.UpdateChoreErrorsResponse.FromString,
             _registered_method=True,
         )
         self.DeleteChore = channel.unary_unary(
@@ -67,6 +79,12 @@ class TaskStub(object):
             response_deserializer=chores__pb2.CreateDistributionResponse.FromString,
             _registered_method=True,
         )
+        self.ValidateCreateDistributionPayload = channel.unary_unary(
+            "/chores.Task/ValidateCreateDistributionPayload",
+            request_serializer=chores__pb2.CreateDistributionPayload.SerializeToString,
+            response_deserializer=chores__pb2.CreateDistributionErrorResponse.FromString,
+            _registered_method=True,
+        )
         self.GetDistribution = channel.unary_unary(
             "/chores.Task/GetDistribution",
             request_serializer=chores__pb2.GetDistributionPayload.SerializeToString,
@@ -77,6 +95,12 @@ class TaskStub(object):
             "/chores.Task/UpdateDistribution",
             request_serializer=chores__pb2.UpdateDistributionPayload.SerializeToString,
             response_deserializer=chores__pb2.UpdateDistributionResponse.FromString,
+            _registered_method=True,
+        )
+        self.ValidateUpdateDistributionPayload = channel.unary_unary(
+            "/chores.Task/ValidateUpdateDistributionPayload",
+            request_serializer=chores__pb2.UpdateDistributionPayload.SerializeToString,
+            response_deserializer=chores__pb2.UpdateDistributionErrorResponse.FromString,
             _registered_method=True,
         )
         self.DeleteDistribution = channel.unary_unary(
@@ -114,6 +138,12 @@ class TaskServicer(object):
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
+    def ValidateCreateChorePayload(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
     def GetChore(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -121,6 +151,12 @@ class TaskServicer(object):
         raise NotImplementedError("Method not implemented!")
 
     def UpdateChore(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def ValidateUpdateChorePayload(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
@@ -138,6 +174,12 @@ class TaskServicer(object):
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
+    def ValidateCreateDistributionPayload(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
     def GetDistribution(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -145,6 +187,12 @@ class TaskServicer(object):
         raise NotImplementedError("Method not implemented!")
 
     def UpdateDistribution(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def ValidateUpdateDistributionPayload(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
@@ -182,6 +230,11 @@ def add_TaskServicer_to_server(servicer, server):
             request_deserializer=chores__pb2.CreateChorePayload.FromString,
             response_serializer=chores__pb2.CreateChoreResponse.SerializeToString,
         ),
+        "ValidateCreateChorePayload": grpc.unary_unary_rpc_method_handler(
+            servicer.ValidateCreateChorePayload,
+            request_deserializer=chores__pb2.CreateChorePayload.FromString,
+            response_serializer=chores__pb2.CreateChoreErrorsResponse.SerializeToString,
+        ),
         "GetChore": grpc.unary_unary_rpc_method_handler(
             servicer.GetChore,
             request_deserializer=chores__pb2.GetChorePayload.FromString,
@@ -191,6 +244,11 @@ def add_TaskServicer_to_server(servicer, server):
             servicer.UpdateChore,
             request_deserializer=chores__pb2.UpdateChorePayload.FromString,
             response_serializer=chores__pb2.UpdateChoreResponse.SerializeToString,
+        ),
+        "ValidateUpdateChorePayload": grpc.unary_unary_rpc_method_handler(
+            servicer.ValidateUpdateChorePayload,
+            request_deserializer=chores__pb2.UpdateChorePayload.FromString,
+            response_serializer=chores__pb2.UpdateChoreErrorsResponse.SerializeToString,
         ),
         "DeleteChore": grpc.unary_unary_rpc_method_handler(
             servicer.DeleteChore,
@@ -202,6 +260,11 @@ def add_TaskServicer_to_server(servicer, server):
             request_deserializer=chores__pb2.CreateDistributionPayload.FromString,
             response_serializer=chores__pb2.CreateDistributionResponse.SerializeToString,
         ),
+        "ValidateCreateDistributionPayload": grpc.unary_unary_rpc_method_handler(
+            servicer.ValidateCreateDistributionPayload,
+            request_deserializer=chores__pb2.CreateDistributionPayload.FromString,
+            response_serializer=chores__pb2.CreateDistributionErrorResponse.SerializeToString,
+        ),
         "GetDistribution": grpc.unary_unary_rpc_method_handler(
             servicer.GetDistribution,
             request_deserializer=chores__pb2.GetDistributionPayload.FromString,
@@ -211,6 +274,11 @@ def add_TaskServicer_to_server(servicer, server):
             servicer.UpdateDistribution,
             request_deserializer=chores__pb2.UpdateDistributionPayload.FromString,
             response_serializer=chores__pb2.UpdateDistributionResponse.SerializeToString,
+        ),
+        "ValidateUpdateDistributionPayload": grpc.unary_unary_rpc_method_handler(
+            servicer.ValidateUpdateDistributionPayload,
+            request_deserializer=chores__pb2.UpdateDistributionPayload.FromString,
+            response_serializer=chores__pb2.UpdateDistributionErrorResponse.SerializeToString,
         ),
         "DeleteDistribution": grpc.unary_unary_rpc_method_handler(
             servicer.DeleteDistribution,
@@ -261,6 +329,36 @@ class Task(object):
             "/chores.Task/CreateChore",
             chores__pb2.CreateChorePayload.SerializeToString,
             chores__pb2.CreateChoreResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True,
+        )
+
+    @staticmethod
+    def ValidateCreateChorePayload(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/chores.Task/ValidateCreateChorePayload",
+            chores__pb2.CreateChorePayload.SerializeToString,
+            chores__pb2.CreateChoreErrorsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -333,6 +431,36 @@ class Task(object):
         )
 
     @staticmethod
+    def ValidateUpdateChorePayload(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/chores.Task/ValidateUpdateChorePayload",
+            chores__pb2.UpdateChorePayload.SerializeToString,
+            chores__pb2.UpdateChoreErrorsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True,
+        )
+
+    @staticmethod
     def DeleteChore(
         request,
         target,
@@ -393,6 +521,36 @@ class Task(object):
         )
 
     @staticmethod
+    def ValidateCreateDistributionPayload(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/chores.Task/ValidateCreateDistributionPayload",
+            chores__pb2.CreateDistributionPayload.SerializeToString,
+            chores__pb2.CreateDistributionErrorResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True,
+        )
+
+    @staticmethod
     def GetDistribution(
         request,
         target,
@@ -441,6 +599,36 @@ class Task(object):
             "/chores.Task/UpdateDistribution",
             chores__pb2.UpdateDistributionPayload.SerializeToString,
             chores__pb2.UpdateDistributionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True,
+        )
+
+    @staticmethod
+    def ValidateUpdateDistributionPayload(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/chores.Task/ValidateUpdateDistributionPayload",
+            chores__pb2.UpdateDistributionPayload.SerializeToString,
+            chores__pb2.UpdateDistributionErrorResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -588,6 +776,12 @@ class HouseStub(object):
             response_deserializer=chores__pb2.CreateResponse.FromString,
             _registered_method=True,
         )
+        self.ValidateCreatePayload = channel.unary_unary(
+            "/chores.House/ValidateCreatePayload",
+            request_serializer=chores__pb2.CreatePayload.SerializeToString,
+            response_deserializer=chores__pb2.CreateErrorResponse.FromString,
+            _registered_method=True,
+        )
         self.Get = channel.unary_unary(
             "/chores.House/Get",
             request_serializer=chores__pb2.GetPayload.SerializeToString,
@@ -598,6 +792,12 @@ class HouseStub(object):
             "/chores.House/Update",
             request_serializer=chores__pb2.UpdatePayload.SerializeToString,
             response_deserializer=chores__pb2.UpdateResponse.FromString,
+            _registered_method=True,
+        )
+        self.ValidateUpdatePayload = channel.unary_unary(
+            "/chores.House/ValidateUpdatePayload",
+            request_serializer=chores__pb2.UpdatePayload.SerializeToString,
+            response_deserializer=chores__pb2.UpdateErrorResponse.FromString,
             _registered_method=True,
         )
         self.Delete = channel.unary_unary(
@@ -635,6 +835,12 @@ class HouseServicer(object):
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
+    def ValidateCreatePayload(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
     def Get(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -642,6 +848,12 @@ class HouseServicer(object):
         raise NotImplementedError("Method not implemented!")
 
     def Update(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def ValidateUpdatePayload(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
@@ -679,6 +891,11 @@ def add_HouseServicer_to_server(servicer, server):
             request_deserializer=chores__pb2.CreatePayload.FromString,
             response_serializer=chores__pb2.CreateResponse.SerializeToString,
         ),
+        "ValidateCreatePayload": grpc.unary_unary_rpc_method_handler(
+            servicer.ValidateCreatePayload,
+            request_deserializer=chores__pb2.CreatePayload.FromString,
+            response_serializer=chores__pb2.CreateErrorResponse.SerializeToString,
+        ),
         "Get": grpc.unary_unary_rpc_method_handler(
             servicer.Get,
             request_deserializer=chores__pb2.GetPayload.FromString,
@@ -688,6 +905,11 @@ def add_HouseServicer_to_server(servicer, server):
             servicer.Update,
             request_deserializer=chores__pb2.UpdatePayload.FromString,
             response_serializer=chores__pb2.UpdateResponse.SerializeToString,
+        ),
+        "ValidateUpdatePayload": grpc.unary_unary_rpc_method_handler(
+            servicer.ValidateUpdatePayload,
+            request_deserializer=chores__pb2.UpdatePayload.FromString,
+            response_serializer=chores__pb2.UpdateErrorResponse.SerializeToString,
         ),
         "Delete": grpc.unary_unary_rpc_method_handler(
             servicer.Delete,
@@ -750,6 +972,36 @@ class House(object):
         )
 
     @staticmethod
+    def ValidateCreatePayload(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/chores.House/ValidateCreatePayload",
+            chores__pb2.CreatePayload.SerializeToString,
+            chores__pb2.CreateErrorResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True,
+        )
+
+    @staticmethod
     def Get(
         request,
         target,
@@ -798,6 +1050,36 @@ class House(object):
             "/chores.House/Update",
             chores__pb2.UpdatePayload.SerializeToString,
             chores__pb2.UpdateResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True,
+        )
+
+    @staticmethod
+    def ValidateUpdatePayload(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/chores.House/ValidateUpdatePayload",
+            chores__pb2.UpdatePayload.SerializeToString,
+            chores__pb2.UpdateErrorResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -945,10 +1227,22 @@ class UsersStub(object):
             response_deserializer=chores__pb2.RegisterResponse.FromString,
             _registered_method=True,
         )
+        self.ValidateRegisterPayload = channel.unary_unary(
+            "/chores.Users/ValidateRegisterPayload",
+            request_serializer=chores__pb2.RegisterPayload.SerializeToString,
+            response_deserializer=chores__pb2.RegisterErrorResponse.FromString,
+            _registered_method=True,
+        )
         self.Login = channel.unary_unary(
             "/chores.Users/Login",
             request_serializer=chores__pb2.LoginPayload.SerializeToString,
             response_deserializer=chores__pb2.LoginResponse.FromString,
+            _registered_method=True,
+        )
+        self.ValidateLoginPayload = channel.unary_unary(
+            "/chores.Users/ValidateLoginPayload",
+            request_serializer=chores__pb2.LoginPayload.SerializeToString,
+            response_deserializer=chores__pb2.LoginErrorResponse.FromString,
             _registered_method=True,
         )
         self.GetUser = channel.unary_unary(
@@ -961,6 +1255,12 @@ class UsersStub(object):
             "/chores.Users/UpdateUser",
             request_serializer=chores__pb2.UpdateUserPayload.SerializeToString,
             response_deserializer=chores__pb2.UpdateUserResponse.FromString,
+            _registered_method=True,
+        )
+        self.ValidateUpdateUserPayload = channel.unary_unary(
+            "/chores.Users/ValidateUpdateUserPayload",
+            request_serializer=chores__pb2.UpdateUserPayload.SerializeToString,
+            response_deserializer=chores__pb2.UpdateUserErrorResponse.FromString,
             _registered_method=True,
         )
         self.DeleteUser = channel.unary_unary(
@@ -986,7 +1286,19 @@ class UsersServicer(object):
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
+    def ValidateRegisterPayload(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
     def Login(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def ValidateLoginPayload(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
@@ -999,6 +1311,12 @@ class UsersServicer(object):
         raise NotImplementedError("Method not implemented!")
 
     def UpdateUser(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def ValidateUpdateUserPayload(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
@@ -1024,10 +1342,20 @@ def add_UsersServicer_to_server(servicer, server):
             request_deserializer=chores__pb2.RegisterPayload.FromString,
             response_serializer=chores__pb2.RegisterResponse.SerializeToString,
         ),
+        "ValidateRegisterPayload": grpc.unary_unary_rpc_method_handler(
+            servicer.ValidateRegisterPayload,
+            request_deserializer=chores__pb2.RegisterPayload.FromString,
+            response_serializer=chores__pb2.RegisterErrorResponse.SerializeToString,
+        ),
         "Login": grpc.unary_unary_rpc_method_handler(
             servicer.Login,
             request_deserializer=chores__pb2.LoginPayload.FromString,
             response_serializer=chores__pb2.LoginResponse.SerializeToString,
+        ),
+        "ValidateLoginPayload": grpc.unary_unary_rpc_method_handler(
+            servicer.ValidateLoginPayload,
+            request_deserializer=chores__pb2.LoginPayload.FromString,
+            response_serializer=chores__pb2.LoginErrorResponse.SerializeToString,
         ),
         "GetUser": grpc.unary_unary_rpc_method_handler(
             servicer.GetUser,
@@ -1038,6 +1366,11 @@ def add_UsersServicer_to_server(servicer, server):
             servicer.UpdateUser,
             request_deserializer=chores__pb2.UpdateUserPayload.FromString,
             response_serializer=chores__pb2.UpdateUserResponse.SerializeToString,
+        ),
+        "ValidateUpdateUserPayload": grpc.unary_unary_rpc_method_handler(
+            servicer.ValidateUpdateUserPayload,
+            request_deserializer=chores__pb2.UpdateUserPayload.FromString,
+            response_serializer=chores__pb2.UpdateUserErrorResponse.SerializeToString,
         ),
         "DeleteUser": grpc.unary_unary_rpc_method_handler(
             servicer.DeleteUser,
@@ -1090,6 +1423,36 @@ class Users(object):
         )
 
     @staticmethod
+    def ValidateRegisterPayload(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/chores.Users/ValidateRegisterPayload",
+            chores__pb2.RegisterPayload.SerializeToString,
+            chores__pb2.RegisterErrorResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True,
+        )
+
+    @staticmethod
     def Login(
         request,
         target,
@@ -1108,6 +1471,36 @@ class Users(object):
             "/chores.Users/Login",
             chores__pb2.LoginPayload.SerializeToString,
             chores__pb2.LoginResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True,
+        )
+
+    @staticmethod
+    def ValidateLoginPayload(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/chores.Users/ValidateLoginPayload",
+            chores__pb2.LoginPayload.SerializeToString,
+            chores__pb2.LoginErrorResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1168,6 +1561,36 @@ class Users(object):
             "/chores.Users/UpdateUser",
             chores__pb2.UpdateUserPayload.SerializeToString,
             chores__pb2.UpdateUserResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True,
+        )
+
+    @staticmethod
+    def ValidateUpdateUserPayload(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/chores.Users/ValidateUpdateUserPayload",
+            chores__pb2.UpdateUserPayload.SerializeToString,
+            chores__pb2.UpdateUserErrorResponse.FromString,
             options,
             channel_credentials,
             insecure,

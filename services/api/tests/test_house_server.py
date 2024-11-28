@@ -20,6 +20,15 @@ from tests.factories.base import ModelFactory
 
 
 class Test_HouseServer:
+    @pytest.mark.parametrize("name", ["", None])
+    def test_it_validates_create_payload(self, house_service: HouseStub, mf: ModelFactory, config: Config, name: str):
+        user = mf.user.user(email="test@example.com")
+        request = CreatePayload(name=name)
+
+        token = get_token_payload(user, config.cryptography.secret_key)
+        response = house_service.ValidateCreatePayload(request, metadata=(("authorization", f"Bearer {token}"),))
+        assert response.name == "String should have at least 1 character"
+
     def test_it_creates_a_house(self, house_service: HouseStub, db: Session, mf: ModelFactory, config: Config):
         user = mf.user.user(email="test@example.com")
         request = CreatePayload(name="House 1")
@@ -53,6 +62,20 @@ class Test_HouseServer:
 
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.NOT_FOUND
+
+    @pytest.mark.parametrize("name", ["", None])
+    @pytest.mark.parametrize("house_id", ["", None])
+    def test_it_validates_update_payload(
+        self, house_service: HouseStub, mf: ModelFactory, config: Config, name: str | None, house_id: str | None
+    ):
+        user = mf.user.user(email="test@example.com")
+        mf.house.house()
+        request = UpdatePayload(name=name, house_id=house_id)
+
+        token = get_token_payload(user, config.cryptography.secret_key)
+        response = house_service.ValidateUpdatePayload(request, metadata=(("authorization", f"Bearer {token}"),))
+        assert response.house_id == "String should have at least 1 character"
+        assert response.name == "String should have at least 1 character"
 
     def test_it_updates_a_house(self, house_service: HouseStub, db: Session, mf: ModelFactory, config: Config):
         user = mf.user.user(email="test@example.com")

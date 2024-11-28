@@ -3,7 +3,9 @@ from datetime import date, timedelta
 from functools import cache
 
 import jwt
+import pendulum
 from google.protobuf.internal import enum_type_wrapper
+from pydantic import ValidationError
 
 from chores.grpc_generated.chores_pb2 import Cadence, UpdateChorePayload
 from chores.models.chore import Chore
@@ -37,7 +39,18 @@ def get_token_payload(user: User, secret_key: str) -> str:
             "sub": str(user.id),
             "name": user.name,
             "nickname": user.first_name,
-            "exp": 1730489220,
+            "exp": pendulum.now().add(days=1).timestamp(),
         },
         secret_key,
     )
+
+
+def parse_errors(e: ValidationError) -> dict[str, str]:
+    errors = {}
+    for error in e.errors():
+        field = error["loc"][0]
+        if field not in errors:
+            errors[field] = []
+        errors[field].append(error["msg"])
+
+    return {field: ".".join(error_list) for field, error_list in errors.items()}

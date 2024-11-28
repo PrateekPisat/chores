@@ -26,7 +26,56 @@ from tests.factories.base import ModelFactory
 
 
 class Test_UsersServer:
-    def test_register_user(self, user_service: UsersStub, db: Session):
+    @pytest.mark.parametrize(
+        "email, expected_error",
+        [
+            ("test", "Value error, An email address must have an @-sign."),
+            ("test@", "Value error, There must be something after the @-sign."),
+            ("@email", "Value error, There must be something before the @-sign."),
+        ],
+    )
+    @pytest.mark.parametrize("first_name", ["", None])
+    @pytest.mark.parametrize("last_name", ["", None])
+    @pytest.mark.parametrize("password", ["", None])
+    @pytest.mark.parametrize("confirm_password", ["", None])
+    def test_it_validates_register_payload(
+        self,
+        user_service: UsersStub,
+        email: str | None,
+        expected_error: str,
+        first_name: str | None,
+        last_name: str | None,
+        password: str | None,
+        confirm_password: str | None,
+    ):
+        request = RegisterPayload(
+            email=email,
+            password=password,
+            confirm_password=confirm_password,
+            first_name=first_name,
+            last_name=last_name,
+        )
+        response = user_service.ValidateRegisterPayload(request)
+
+        assert response.email == expected_error
+        assert response.first_name == "String should have at least 1 character"
+        assert response.last_name == "String should have at least 1 character"
+        assert response.password == "String should have at least 1 character"
+        assert response.confirm_password == "String should have at least 1 character"
+
+    def test_it_validates_passwords(self, user_service: UsersStub):
+        request = RegisterPayload(
+            email="test@example.com",
+            password="asdasd",
+            confirm_password="asdasd1",
+            first_name="asdasd",
+            last_name="asdasd",
+        )
+        response = user_service.ValidateRegisterPayload(request)
+
+        assert response.confirm_password == "Value error, Passwords do not match"
+
+    def test_register_user(self, user_service: UsersStub, db: Session, config: Config):
         request = RegisterPayload(email="adasd", password="asdasd", first_name="asdasd", last_name="asdasd")
         response = user_service.Register(request)
 
@@ -35,9 +84,14 @@ class Test_UsersServer:
         user = db.query(User).filter(User.id == response.user_id).one_or_none()
         assert user is not None
 
+        token_payload = jwt.decode(response.token, config.cryptography.secret_key, algorithms=["HS256"])
         assert user.email == request.email
         assert user.first_name == request.first_name
         assert user.last_name == request.last_name
+        assert response.user_id == str(user.id)
+        assert token_payload["sub"] == str(user.id)
+        assert token_payload["name"] == user.name
+        assert token_payload["nickname"] == user.first_name
 
     def test_login(self, user_service: UsersStub, mf: ModelFactory, config: Config):
         user = mf.user.user()

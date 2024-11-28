@@ -26,6 +26,49 @@ from tests.factories.base import ModelFactory
 
 
 class Test_Chores:
+    @pytest.mark.parametrize("name", ["", None])
+    @pytest.mark.parametrize("description", ["", None])
+    @pytest.mark.parametrize("cadence", ["", None])
+    @pytest.mark.parametrize("start_date", ["", None])
+    @pytest.mark.parametrize("end_date", ["", None])
+    def test_it_validates_chore_payload(
+        self,
+        task_service: TaskStub,
+        config: Config,
+        mf: ModelFactory,
+        name: str | None,
+        description: str | None,
+        cadence: str | None,
+        start_date: str | None,
+        end_date: str | None,
+    ):
+        user = mf.user.user(email="test@example.com")
+        token = get_token_payload(user, config.cryptography.secret_key)
+        request = CreateChorePayload(name=name, description=description, start_date=start_date, end_date=end_date)
+
+        response = task_service.ValidateCreateChorePayload(request, metadata=(("authorization", f"Bearer {token}"),))
+
+        assert response.name == "String should have at least 1 character"
+        assert response.description == "String should have at least 1 character"
+        assert response.cadence == "Input should be a valid string"
+        assert response.start_date == "Input should be a valid string"
+        assert response.end_date == "Input should be a valid string"
+
+    def test_it_validates_dates(self, task_service: TaskStub, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
+        token = get_token_payload(user, config.cryptography.secret_key)
+        request = CreateChorePayload(
+            name="Chore 1",
+            description="Chore 1 description",
+            start_date="adasd",
+            end_date="asdas",
+        )
+
+        response = task_service.ValidateCreateChorePayload(request, metadata=(("authorization", f"Bearer {token}"),))
+
+        response.start_date == "Invalid date format"
+        response.end_date == "Invalid date format"
+
     def test_it_creates_a_chore(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
         now = pendulum.now()
@@ -271,6 +314,21 @@ class Test_ChoreDistribution:
         assert exception.code() == grpc.StatusCode.NOT_FOUND
         assert exception.details() == f"Chore {request.id} not found!"
 
+    @pytest.mark.parametrize("chore_id", ["", None])
+    def test_it_validates_distribution_payload(
+        self, task_service: TaskStub, config: Config, mf: ModelFactory, chore_id: str | None
+    ):
+        user = mf.user.user(email="test@example.com")
+        token = get_token_payload(user, config.cryptography.secret_key)
+        request = UpdateDistributionPayload(chore_id=chore_id, user_ids=[])
+
+        response = task_service.ValidateUpdateDistributionPayload(
+            request, metadata=(("authorization", f"Bearer {token}"),)
+        )
+
+        assert response.chore_id == "String should have at least 1 character"
+        assert response.user_ids == "List should have at least 1 item after validation, not 0"
+
     def test_it_updates_distribution(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
         now = pendulum.now()
@@ -385,7 +443,7 @@ class Test_Task:
 
     def test_it_updates_a_task(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
-        now = pendulum.now()
+        now = pendulum.now("America/New_York")
         chore = mf.chore.chore(cadence="DAILY", start_date=now.date(), end_date=now.add(days=1).date())
         user = mf.user.user()
         distribution = mf.chore.distribution(chore=chore, user=user)

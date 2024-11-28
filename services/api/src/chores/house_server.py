@@ -5,6 +5,7 @@ from concurrent import futures
 import grpc
 from dependency_injector.wiring import inject, Provide
 from grpc._server import _Context
+from pydantic import ValidationError
 from setuplog import log, setup_logging
 from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
@@ -15,6 +16,7 @@ from chores.errors import AlreadyExists, NotFound
 from chores.grpc_generated.chores_pb2 import (
     AddMemberResponse,
     AddMembersPayload,
+    CreateErrorResponse,
     CreatePayload,
     CreateResponse,
     DeletePayload,
@@ -24,16 +26,27 @@ from chores.grpc_generated.chores_pb2 import (
     GetResponse,
     RemoveMemberPayload,
     RemoveMemberResponse,
+    UpdateErrorResponse,
     UpdatePayload,
     UpdateResponse,
 )
 from chores.grpc_generated.chores_pb2_grpc import add_HouseServicer_to_server, HouseServicer
 from chores.interceptors import ExceptionToStatusInterceptor
 from chores.models.house import House, HouseMember
+from chores.schema import CreateHousePayload, UpdateHousePayload
 from chores.users_server import _ONE_DAY_IN_SECONDS
+from chores.utils import parse_errors
 
 
 class HouseServer(HouseServicer):
+    def ValidateCreatePayload(self, request: CreatePayload, context: _Context) -> CreateErrorResponse:
+        try:
+            CreateHousePayload(name=request.name)
+        except ValidationError as e:
+            return CreateErrorResponse(**parse_errors(e))
+
+        return CreateErrorResponse(name=None)
+
     @inject
     def Create(
         self, request: CreatePayload, context: _Context, database: Database = Provide[Container.database]
@@ -56,6 +69,14 @@ class HouseServer(HouseServicer):
             raise NotFound("House not found!")
 
         return GetResponse(house_id=str(house.id), name=house.name)
+
+    def ValidateUpdatePayload(self, request: UpdatePayload, context: _Context) -> UpdateErrorResponse:
+        try:
+            UpdateHousePayload(name=request.name, house_id=request.house_id)
+        except ValidationError as e:
+            return UpdateErrorResponse(**parse_errors(e))
+
+        return UpdateErrorResponse()
 
     @inject
     def Update(

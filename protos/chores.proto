@@ -5,13 +5,17 @@ package chores;
 service Task{
     //  A Chore is an activity. It's not directly assigned to a user.
     rpc CreateChore(CreateChorePayload) returns (CreateChoreResponse) {}
+    rpc ValidateCreateChorePayload(CreateChorePayload) returns (CreateChoreErrorsResponse) {}
     rpc GetChore(GetChorePayload) returns (GetChoreResponse) {}
     rpc UpdateChore(UpdateChorePayload) returns (UpdateChoreResponse) {}
+    rpc ValidateUpdateChorePayload(UpdateChorePayload) returns (UpdateChoreErrorsResponse) {}
     rpc DeleteChore(DeleteChorePayload) returns (DeleteChoreResponse) {}
     // A distribution defines the users that are assigned to a chore.
     rpc CreateDistribution(CreateDistributionPayload) returns (CreateDistributionResponse) {}
+    rpc ValidateCreateDistributionPayload(CreateDistributionPayload) returns (CreateDistributionErrorResponse) {}
     rpc GetDistribution(GetDistributionPayload) returns (GetDistributionResponse) {}
     rpc UpdateDistribution(UpdateDistributionPayload) returns (UpdateDistributionResponse) {}
+    rpc ValidateUpdateDistributionPayload(UpdateDistributionPayload) returns (UpdateDistributionErrorResponse) {}
     rpc DeleteDistribution(DeleteDistributionPayload) returns (DeleteDistributionResponse) {}
     // A task is a user's assignment to a chore.
     rpc GetTask(GetTaskPayload) returns (GetTaskResponse) {}
@@ -21,8 +25,10 @@ service Task{
 
 service House{
     rpc Create(CreatePayload) returns (CreateResponse) {}
+    rpc ValidateCreatePayload(CreatePayload) returns (CreateErrorResponse) {}
     rpc Get(GetPayload) returns (GetResponse) {}
     rpc Update(UpdatePayload) returns (UpdateResponse) {}
+    rpc ValidateUpdatePayload(UpdatePayload) returns (UpdateErrorResponse) {}
     rpc Delete(DeletePayload) returns (DeleteResponse) {}
     rpc AddMembers(AddMembersPayload) returns (AddMemberResponse) {}
     rpc RemoveMember(RemoveMemberPayload) returns (RemoveMemberResponse) {}
@@ -31,9 +37,12 @@ service House{
 
 service Users{
  rpc Register(RegisterPayload) returns (RegisterResponse) {}
+ rpc ValidateRegisterPayload(RegisterPayload) returns (RegisterErrorResponse) {}
  rpc Login(LoginPayload) returns (LoginResponse) {}
+ rpc ValidateLoginPayload(LoginPayload) returns (LoginErrorResponse) {}
  rpc GetUser(GetUserPayload) returns (GetUserResponse) {}
  rpc UpdateUser(UpdateUserPayload) returns (UpdateUserResponse) {}
+ rpc ValidateUpdateUserPayload(UpdateUserPayload) returns (UpdateUserErrorResponse) {}
  rpc DeleteUser(DeleteUserPayload) returns (DeleteUserResponse) {}
  rpc SearchUser(SearchUserPayload) returns (SearchUserResponse) {}
 }
@@ -69,6 +78,14 @@ message CreateChorePayload{
     string end_date = 5;
 }
 
+message CreateChoreErrorsResponse{
+    string name = 1;
+    string description = 2;
+    string cadence = 3;
+    string start_date = 4;
+    string end_date = 5;
+}
+
 message CreateChoreResponse{
     string id = 1;
 }
@@ -95,6 +112,15 @@ message UpdateChorePayload{
     string end_date = 6;
 }
 
+message UpdateChoreErrorsResponse{
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    string cadence = 4;
+    string start_date = 5;
+    string end_date = 6;
+}
+
 message UpdateChoreResponse{
     string id = 1;
 }
@@ -113,6 +139,11 @@ message CreateDistributionPayload{
     repeated string user_ids = 2;
 }
 
+message CreateDistributionErrorResponse{
+    string chore_id = 1;
+    string user_ids = 2;
+}
+
 message CreateDistributionResponse{
     string id = 1; // Chore ID
 }
@@ -129,6 +160,11 @@ message GetDistributionResponse{
 message UpdateDistributionPayload{
     string chore_id = 1;
     repeated string user_ids = 2;
+}
+
+message UpdateDistributionErrorResponse{
+    string chore_id = 1;
+    string user_ids = 2;
 }
 
 message UpdateDistributionResponse{
@@ -178,6 +214,10 @@ message CreatePayload{
     string name = 1;
 }
 
+message CreateErrorResponse{
+    string name = 1;
+}
+
 message CreateResponse{
     string house_id = 1;
 }
@@ -192,6 +232,11 @@ message GetResponse{
 }
 
 message UpdatePayload{
+    string house_id = 1;
+    string name = 2;
+}
+
+message UpdateErrorResponse{
     string house_id = 1;
     string name = 2;
 }
@@ -236,15 +281,30 @@ message GetMembersResponse{
 message RegisterPayload{
     string email = 1;
     string password = 2;
-    string first_name = 3;
-    string last_name = 4;
+    string confirm_password = 3;
+    string first_name = 4;
+    string last_name = 5;
+}
+
+message RegisterErrorResponse{
+    string email = 1;
+    string password = 2;
+    string confirm_password = 3;
+    string first_name = 4;
+    string last_name = 5;
 }
 
 message RegisterResponse{
     string user_id = 1;
+    string token = 2;
 }
 
 message LoginPayload{
+    string email = 1;
+    string password = 2;
+}
+
+message LoginErrorResponse{
     string email = 1;
     string password = 2;
 }
@@ -266,6 +326,13 @@ message GetUserResponse{
 }
 
 message UpdateUserPayload{
+    string user_id = 1;
+    string email = 2;
+    string first_name = 3;
+    string last_name = 4;
+}
+
+message UpdateUserErrorResponse{
     string user_id = 1;
     string email = 2;
     string first_name = 3;
