@@ -1,5 +1,5 @@
-// stores/counter.js
 import { defineStore } from 'pinia'
+
 
 export interface User {
   firstName: string | null
@@ -15,30 +15,8 @@ export const useUserStore = defineStore('user', {
         firstName: null,
         lastName: null,
         email: null,
-      } as User
-    }
-  },
-  actions: {
-    resetUser() {
-      this.user = {
-        firstName: null,
-        lastName: null,
-        email: null,
-      }
-    },
-    login(email: string, _password: string) {
-      // fetch user and set it
-      console.log(_password)
-      this.token = 'mytoken'
-      this.user = {
-        firstName: 'Eduardo',
-        lastName: 'Sanchez',
-        email: email,
-      }
-    },
-    logout() {
-      this.token = null
-      this.resetUser()
+      } as User,
+      errors: {} as Record<string, string>,
     }
   },
   getters: {
@@ -53,6 +31,26 @@ export const useUserStore = defineStore('user', {
     },
     isLoggedIn(): boolean {
       return !!this.token
-    }
-  }
+    },
+  },
+  actions: {
+    resetUser() {
+      this.user = {
+        firstName: null,
+        lastName: null,
+        email: null,
+      }
+    },
+    validateRegisterPayload() {
+      console.log('checking')
+    },
+    register() {
+      // this.client.register(this.registerPayload).then((res) => {
+      //   console.log(res)
+      //   this.token = res.response.token
+      // }).catch((err) => {
+      //   console.log(err)
+      // })
+    },
+  },
 })
