@@ -8,12 +8,13 @@ services:
       POSTGRES_PASSWORD: "postgres"
       POSTGRES_DB: "chores"
     volumes:
-      - postgres:/data/db/postgres
+      - postgres:/var/lib/postgresql/data
     
   task_service:
     build:
-      context: ./services/api/
-      dockerfile: Dockerfile
+      dockerfile: ./services/server/Dockerfile
+    stdin_open: true
+    tty: true
     command: ["poetry", "run", "python", "/service/src/chores/task_server.py"]
     ports:
       - "50053:50053"
@@ -26,13 +27,13 @@ services:
       DATABASE_DATABASE: "chores"
       DATABASE_PORT: 5432
       SECRET_KEY: "${SECRET_KEY}"
+      CERTS_PATH: "/service/certs"
     depends_on:
       - postgres
     
   users_service:
     build:
-      context: ./services/api/
-      dockerfile: Dockerfile
+      dockerfile: ./services/server/Dockerfile
     command: ["poetry", "run", "python", "/service/src/chores/users_server.py"]
     ports:
       - "50051:50051"
@@ -45,13 +46,13 @@ services:
       DATABASE_DATABASE: "chores"
       DATABASE_PORT: 5432
       SECRET_KEY: "${SECRET_KEY}"
+      CERTS_PATH: "/service/certs"
     depends_on:
       - postgres
   
   house_service:
     build:
-      context: ./services/api/
-      dockerfile: Dockerfile
+      dockerfile: ./services/server/Dockerfile
     command: ["poetry", "run", "python", "/service/src/chores/house_server.py"]
     ports:
       - "50052:50052"
@@ -64,8 +65,10 @@ services:
       DATABASE_DATABASE: "chores"
       DATABASE_PORT: 5432
       SECRET_KEY: "${SECRET_KEY}"
+      CERTS_PATH: "/service/certs"
     depends_on:
       - postgres
 
 volumes:
   postgres:
+    driver: local

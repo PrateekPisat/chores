@@ -5,17 +5,13 @@ package chores;
 service Task{
     //  A Chore is an activity. It's not directly assigned to a user.
     rpc CreateChore(CreateChorePayload) returns (CreateChoreResponse) {}
-    rpc ValidateCreateChorePayload(CreateChorePayload) returns (CreateChoreErrorsResponse) {}
     rpc GetChore(GetChorePayload) returns (GetChoreResponse) {}
     rpc UpdateChore(UpdateChorePayload) returns (UpdateChoreResponse) {}
-    rpc ValidateUpdateChorePayload(UpdateChorePayload) returns (UpdateChoreErrorsResponse) {}
     rpc DeleteChore(DeleteChorePayload) returns (DeleteChoreResponse) {}
     // A distribution defines the users that are assigned to a chore.
     rpc CreateDistribution(CreateDistributionPayload) returns (CreateDistributionResponse) {}
-    rpc ValidateCreateDistributionPayload(CreateDistributionPayload) returns (CreateDistributionErrorResponse) {}
     rpc GetDistribution(GetDistributionPayload) returns (GetDistributionResponse) {}
     rpc UpdateDistribution(UpdateDistributionPayload) returns (UpdateDistributionResponse) {}
-    rpc ValidateUpdateDistributionPayload(UpdateDistributionPayload) returns (UpdateDistributionErrorResponse) {}
     rpc DeleteDistribution(DeleteDistributionPayload) returns (DeleteDistributionResponse) {}
     // A task is a user's assignment to a chore.
     rpc GetTask(GetTaskPayload) returns (GetTaskResponse) {}
@@ -25,10 +21,8 @@ service Task{
 
 service House{
     rpc Create(CreatePayload) returns (CreateResponse) {}
-    rpc ValidateCreatePayload(CreatePayload) returns (CreateErrorResponse) {}
     rpc Get(GetPayload) returns (GetResponse) {}
     rpc Update(UpdatePayload) returns (UpdateResponse) {}
-    rpc ValidateUpdatePayload(UpdatePayload) returns (UpdateErrorResponse) {}
     rpc Delete(DeletePayload) returns (DeleteResponse) {}
     rpc AddMembers(AddMembersPayload) returns (AddMemberResponse) {}
     rpc RemoveMember(RemoveMemberPayload) returns (RemoveMemberResponse) {}
@@ -37,12 +31,10 @@ service House{
 
 service Users{
  rpc Register(RegisterPayload) returns (RegisterResponse) {}
- rpc ValidateRegisterPayload(RegisterPayload) returns (RegisterErrorResponse) {}
  rpc Login(LoginPayload) returns (LoginResponse) {}
- rpc ValidateLoginPayload(LoginPayload) returns (LoginErrorResponse) {}
+ rpc Logout(LogoutPayload) returns (LogoutResponse) {}
  rpc GetUser(GetUserPayload) returns (GetUserResponse) {}
  rpc UpdateUser(UpdateUserPayload) returns (UpdateUserResponse) {}
- rpc ValidateUpdateUserPayload(UpdateUserPayload) returns (UpdateUserErrorResponse) {}
  rpc DeleteUser(DeleteUserPayload) returns (DeleteUserResponse) {}
  rpc SearchUser(SearchUserPayload) returns (SearchUserResponse) {}
 }
@@ -312,6 +304,15 @@ message LoginErrorResponse{
 message LoginResponse{
     string user_id = 1;
     string token = 2;
+}
+
+message LogoutPayload{
+    string user_id = 1;
+    string token = 2;
+}
+
+message LogoutResponse{
+    string user_id = 1;
 }
 
 message GetUserPayload{
