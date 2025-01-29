@@ -57,6 +57,10 @@ def config(db: Session):
             "environment": "test",
             "logging": {"level": "DEBUG"},
             "cryptography": {"secret_key": Fernet.generate_key()},
+            "cert": {
+                "certs_path": "../../certs/localhost/",
+                "hostname": "localhost",
+            },
         },
     )
 
@@ -64,9 +68,9 @@ def config(db: Session):
 @pytest.fixture
 def channel_credentials():
     return grpc.ssl_channel_credentials(
-        open("./certs/rootCA.crt", "rb").read(),
-        open("./certs/localhost.key", "rb").read(),
-        open("./certs/localhost.crt", "rb").read(),
+        open("../../certs/localhost/rootCA.crt", "rb").read(),
+        open("../../certs/localhost/localhost.key", "rb").read(),
+        open("../../certs/localhost/localhost.crt", "rb").read(),
     )
 
 
@@ -75,8 +79,8 @@ def server_credentials():
     return grpc.ssl_server_credentials(
         [
             (
-                open("./certs/localhost.key", "rb").read(),
-                open("./certs/localhost.crt", "rb").read(),
+                open("../../certs/localhost/localhost.key", "rb").read(),
+                open("../../certs/localhost/localhost.crt", "rb").read(),
             )
         ],
     )

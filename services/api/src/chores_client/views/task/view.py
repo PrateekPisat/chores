@@ -45,7 +45,9 @@ ENUM_MAP = enum_map = {
 
 
 def create_chore(payload: ChoreDetails, task_client: TaskClientDep, token: TokenDep) -> ChoreId:
-    response: CreateChoreResponse = task_client.CreateChore(payload.grpc_model_dump())
+    response: CreateChoreResponse = task_client.CreateChore(
+        payload.grpc_model_dump(), metadata=[("authorization", f"Bearer {token}")]
+    )
     return ChoreId(id=response.id)
 
 

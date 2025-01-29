@@ -27,3 +27,5 @@ RUN poetry install
 EXPOSE 50051
 EXPOSE 50052
 EXPOSE 50053
+
+ENTRYPOINT [ "poetry", "run" ]

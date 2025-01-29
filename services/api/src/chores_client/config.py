@@ -8,8 +8,10 @@ from pydantic import BaseModel
 
 class Config(BaseModel):
     logging: LoggingConfig
-    chores_service: ChoresServiceConfig
-    certs_path: Annotated[str | None, Env("CERTS_PATH")] = None
+    house_service: HouseServiceConfig
+    user_service: UserServiceConfig
+    task_service: TaskServiceConfig
+    cert: CertConfig
 
     environment: Annotated[str | None, Env("ENVIRONMENT")] = None
 
@@ -20,21 +22,40 @@ class LoggingConfig(BaseModel):
 
 class ChoresServiceConfig(BaseModel):
     service_base_url: Annotated[str, Env("SERVICE_BASE_URL")] = "localhost"
-    user_service_port: Annotated[int, Env("USER_SERVICE_PORT")] = 50051
-    house_service_port: Annotated[int, Env("HOUSE_SERVICE_PORT")] = 50052
-    task_service_port: Annotated[int, Env("TASK_SERVICE_PORT")] = 50053
+
+
+class UserServiceConfig(ChoresServiceConfig):
+    port: Annotated[int, Env("USERS_SERVICE_PORT")] = 50051
+    host: Annotated[str, Env("USERS_SERVICE_HOST")] = "localhost"
+    cert_path: Annotated[str | None, Env("USERS_SERVICE_CERT_PATH")] = "users_service"
 
     @property
-    def user_service_url(self) -> str:
-        return f"{self.service_base_url}:{self.user_service_port}"
+    def url(self) -> str:
+        return f"{self.host}:{self.port}"
+
+
+class TaskServiceConfig(ChoresServiceConfig):
+    port: Annotated[int, Env("TASK_SERVICE_PORT")] = 50053
+    host: Annotated[str, Env("TASK_SERVICE_HOST")] = "localhost"
+    cert_path: Annotated[str | None, Env("TASK_SERVICE_CERT_PATH")] = "task_service"
 
     @property
-    def house_service_url(self) -> str:
-        return f"{self.service_base_url}:{self.house_service_port}"
+    def url(self) -> str:
+        return f"{self.host}:{self.port}"
+
+
+class HouseServiceConfig(ChoresServiceConfig):
+    port: Annotated[int, Env("HOUSE_SERVICE_PORT")] = 50052
+    host: Annotated[str, Env("HOUSE_SERVICE_HOST")] = "localhost"
+    cert_path: Annotated[str | None, Env("HOUSE_SERVICE_CERT_PATH")] = "house_service"
 
     @property
-    def task_service_url(self) -> str:
-        return f"{self.service_base_url}:{self.task_service_port}"
+    def url(self) -> str:
+        return f"{self.host}:{self.port}"
+
+
+class CertConfig(BaseModel):
+    certs_path: Annotated[str | None, Env("CERTS_PATH")] = None
 
 
 def load_config():

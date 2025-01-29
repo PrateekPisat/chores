@@ -10,13 +10,12 @@ class Config(BaseModel):
     logging: LoggingConfig
     postgres: PostgresConfig
     cryptography: CryptographyConfig
+    cert: CertConfig
 
     environment: Annotated[str | None, Env("ENVIRONMENT")] = None
     user_service_port: Annotated[int, Env("USER_SERVICE_PORT")] = 50051
     house_service_port: Annotated[int, Env("HOUSE_SERVICE_PORT")] = 50052
     task_service_port: Annotated[int, Env("TASK_SERVICE_PORT")] = 50053
-
-    certs_path: Annotated[str | None, Env("CERTS_PATH")] = None
 
 
 class LoggingConfig(BaseModel):
@@ -35,6 +34,11 @@ class PostgresConfig(BaseModel):
 
 class CryptographyConfig(BaseModel):
     secret_key: Annotated[str, Env("SECRET_KEY")]
+
+
+class CertConfig(BaseModel):
+    certs_path: Annotated[str | None, Env("CERTS_PATH")] = None
+    hostname: Annotated[str | None, Env("HOSTNAME")] = None
 
 
 def load_config():

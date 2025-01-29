@@ -58,12 +58,12 @@ def parse_errors(e: ValidationError) -> dict[str, str]:
     return {field: ".".join(error_list) for field, error_list in errors.items()}
 
 
-def get_server_credentials(config: Config):
+def get_server_credentials(config: Config) -> grpc.ServerCredentials:
     return grpc.ssl_server_credentials(
         [
             (
-                open(f"{config.certs_path}/localhost.key", "rb").read(),
-                open(f"{config.certs_path}/localhost.crt", "rb").read(),
+                open(f"{config.cert.certs_path}/{config.cert.hostname}.key", "rb").read(),
+                open(f"{config.cert.certs_path}/{config.cert.hostname}.crt", "rb").read(),
             )
         ],
     )

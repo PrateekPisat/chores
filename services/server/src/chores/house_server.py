@@ -31,7 +31,7 @@ from chores.grpc_generated.chores_pb2 import (
     UpdateResponse,
 )
 from chores.grpc_generated.chores_pb2_grpc import add_HouseServicer_to_server, HouseServicer
-from chores.interceptors import ExceptionToStatusInterceptor
+from chores.interceptors import AuthInterceptor, ExceptionToStatusInterceptor
 from chores.models.house import House, HouseMember
 from chores.schema import CreateHousePayload, UpdateHousePayload
 from chores.users_server import _ONE_DAY_IN_SECONDS
@@ -171,7 +171,9 @@ def serve():
         style=" %(name)s :: %(levelname)-8s :: %(message)s",
     )
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=[ExceptionToStatusInterceptor()])
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=10), interceptors=[ExceptionToStatusInterceptor(), AuthInterceptor()]
+    )
     add_HouseServicer_to_server(HouseServer(), server)
     server.add_secure_port(f"[::]:{config.house_service_port}", get_server_credentials(config))
     server.start()

@@ -50,7 +50,7 @@ from chores.grpc_generated.chores_pb2 import (
     User as UserPayload,
 )
 from chores.grpc_generated.chores_pb2_grpc import add_TaskServicer_to_server, TaskServicer
-from chores.interceptors import ExceptionToStatusInterceptor
+from chores.interceptors import AuthInterceptor, ExceptionToStatusInterceptor
 from chores.models.chore import Chore, ChoreDistribution, Task
 from chores.users_server import _ONE_DAY_IN_SECONDS
 from chores.utils import distribution_needs_update, enum_mapper, get_intervals, get_server_credentials, parse_errors
@@ -375,7 +375,9 @@ def serve():
         style=" %(name)s :: %(levelname)-8s :: %(message)s",
     )
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=[ExceptionToStatusInterceptor()])
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=10), interceptors=[ExceptionToStatusInterceptor(), AuthInterceptor()]
+    )
     add_TaskServicer_to_server(TaskServer(), server)
     server.add_secure_port(f"[::]:{config.task_service_port}", get_server_credentials(config))
     server.start()

@@ -18,40 +18,38 @@ def config() -> Config:
 ConfigDep = Annotated[Config, Depends(config)]
 
 
-def get_channel_credentials(config: ConfigDep):
+def get_channel_credentials(
+    config: ConfigDep, sub_path: str, hostname: str
+) -> grpc.ChannelCredentials:
+    base_path = f"{config.cert.certs_path}/{sub_path}"
+
     return grpc.ssl_channel_credentials(
-        open(f"{config.certs_path}/rootCA.crt", "rb").read(),
-        open(f"{config.certs_path}/localhost.key", "rb").read(),
-        open(f"{config.certs_path}/localhost.crt", "rb").read(),
+        open(f"{base_path}/rootCA.crt", "rb").read(),
+        open(f"{base_path}/{hostname}.key", "rb").read(),
+        open(f"{base_path}/{hostname}.crt", "rb").read(),
     )
 
 
-ChannelCredentialsDep = Annotated[grpc.ChannelCredentials, Depends(get_channel_credentials)]
-
-
-def house_client(
-    config: ConfigDep, channel_credentials: ChannelCredentialsDep
-) -> Generator[HouseStub, None, None]:
+def house_client(config: ConfigDep) -> Generator[HouseStub, None, None]:
     with grpc.secure_channel(
-        config.chores_service.house_service_url, channel_credentials
+        config.house_service.url,
+        get_channel_credentials(config, config.house_service.cert_path, config.house_service.host),
     ) as channel:
         yield HouseStub(channel)
 
 
-def users_client(
-    config: ConfigDep, channel_credentials: ChannelCredentialsDep
-) -> Generator[UsersStub, None, None]:
+def users_client(config: ConfigDep) -> Generator[UsersStub, None, None]:
     with grpc.secure_channel(
-        config.chores_service.user_service_url, channel_credentials
+        config.user_service.url,
+        get_channel_credentials(config, config.user_service.cert_path, config.user_service.host),
     ) as channel:
         yield UsersStub(channel)
 
 
-def task_client(
-    config: ConfigDep, channel_credentials: ChannelCredentialsDep
-) -> Generator[TaskStub, None, None]:
+def task_client(config: ConfigDep) -> Generator[TaskStub, None, None]:
     with grpc.secure_channel(
-        config.chores_service.task_service_url, channel_credentials
+        config.task_service.url,
+        get_channel_credentials(config, config.task_service.cert_path, config.task_service.host),
     ) as channel:
         yield TaskStub(channel)
 

@@ -13,9 +13,7 @@ services:
   task_service:
     build:
       dockerfile: ./services/server/Dockerfile
-    stdin_open: true
-    tty: true
-    command: ["poetry", "run", "python", "/service/src/chores/task_server.py"]
+    command: ["python", "/service/src/chores/task_server.py"]
     ports:
       - "50053:50053"
     environment:
@@ -27,14 +25,15 @@ services:
       DATABASE_DATABASE: "chores"
       DATABASE_PORT: 5432
       SECRET_KEY: "${SECRET_KEY}"
-      CERTS_PATH: "/service/certs"
+      CERTS_PATH: "/service/certs/task_service"
+      HOSTNAME: "task_service"
     depends_on:
       - postgres
     
   users_service:
     build:
       dockerfile: ./services/server/Dockerfile
-    command: ["poetry", "run", "python", "/service/src/chores/users_server.py"]
+    command: ["python", "/service/src/chores/users_server.py"]
     ports:
       - "50051:50051"
     environment:
@@ -46,14 +45,15 @@ services:
       DATABASE_DATABASE: "chores"
       DATABASE_PORT: 5432
       SECRET_KEY: "${SECRET_KEY}"
-      CERTS_PATH: "/service/certs"
+      CERTS_PATH: "/service/certs/users_service"
+      HOSTNAME: "users_service"
     depends_on:
       - postgres
   
   house_service:
     build:
       dockerfile: ./services/server/Dockerfile
-    command: ["poetry", "run", "python", "/service/src/chores/house_server.py"]
+    command: ["python", "/service/src/chores/house_server.py"]
     ports:
       - "50052:50052"
     environment:
@@ -65,9 +65,35 @@ services:
       DATABASE_DATABASE: "chores"
       DATABASE_PORT: 5432
       SECRET_KEY: "${SECRET_KEY}"
-      CERTS_PATH: "/service/certs"
+      CERTS_PATH: "/service/certs/house_service"
+      HOSTNAME: "house_service"
     depends_on:
       - postgres
+  
+  api:
+    build:
+      dockerfile: ./services/api/Dockerfile
+    command: ["uvicorn", "chores_client.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      LOGGING_LEVEL: "INFO"
+      TASK_SERVICE_HOST: "task_service"
+      TASK_SERVICE_PORT: 50053
+      TASK_SERVICE_CERT_PATH: "task_service"
+      USERS_SERVICE_HOST: "users_service"
+      USERS_SERVICE_PORT: 50051
+      USERS_SERVICE_CERT_PATH: "users_service"
+      HOUSE_SERVICE_HOST: "house_service"
+      HOUSE_SERVICE_PORT: 50052
+      HOUSE_SERVICE_CERT_PATH: "house_service"
+      SECRET_KEY: "${SECRET_KEY}"
+      CERTS_PATH: "/service/certs"
+    depends_on:
+      - task_service
+      - users_service
+      - house_service
 
 volumes:
   postgres:
