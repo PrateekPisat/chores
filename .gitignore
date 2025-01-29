@@ -9,3 +9,5 @@
 *.key
 *.srl
 certs/*/**
+
+.vscode/**
