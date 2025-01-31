@@ -2,6 +2,7 @@ from concurrent import futures
 
 import grpc
 import pytest
+from argon2 import PasswordHasher
 from chores.config import Config
 from chores.deps import Container, providers
 from chores.grpc_generated.chores_pb2_grpc import (
@@ -84,6 +85,11 @@ def server_credentials():
             )
         ],
     )
+
+
+@pytest.fixture
+def password_hasher():
+    return PasswordHasher()
 
 
 @pytest.fixture

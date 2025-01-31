@@ -1,6 +1,7 @@
 import time
 from concurrent import futures
 
+from argon2 import PasswordHasher
 import grpc
 from dependency_injector.wiring import inject, Provide
 from grpc._server import _Context
@@ -59,10 +60,11 @@ class UsersServer(UsersServicer):
         context: _Context,
         database: Database = Provide[Container.database],
         config=Provide[Container.config],
+        password_hasher: PasswordHasher = Provide[Container.password_hasher],
     ) -> RegisterResponse:
         user = User(
             email=request.email,
-            password=request.password,
+            password=password_hasher.hash(request.password),
             first_name=request.first_name,
             last_name=request.last_name,
         )
@@ -80,14 +82,13 @@ class UsersServer(UsersServicer):
         context: _Context,
         database: Database = Provide[Container.database],
         config=Provide[Container.config],
+        password_hasher: PasswordHasher = Provide[Container.password_hasher],
     ) -> LoginResponse:
         with database.session() as db:
-            user = (
-                db.query(User)
-                .filter(and_(User.email == request.email, User.password == request.password))
-                .one_or_none()
-            )
+            user = db.query(User).filter(User.email == request.email).one_or_none()
         if not user:
+            raise NotFound(details="Invalid email or password!")
+        if not password_hasher.verify(user.password, request.password):
             raise NotFound(details="Invalid email or password!")
 
         token = get_token_payload(user, config.cryptography.secret_key)

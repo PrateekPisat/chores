@@ -3,6 +3,7 @@ import uuid
 import grpc
 import jwt
 import pytest
+from argon2 import PasswordHasher
 from chores.config import Config
 from chores.grpc_generated.chores_pb2 import (
     DeleteUserPayload,
@@ -46,9 +47,9 @@ class Test_UsersServer:
         assert token_payload["name"] == user.name
         assert token_payload["nickname"] == user.first_name
 
-    def test_login(self, user_service: UsersStub, mf: ModelFactory, config: Config):
-        user = mf.user.user()
-        request = LoginPayload(email=user.email, password=user.password)
+    def test_login(self, user_service: UsersStub, mf: ModelFactory, config: Config, password_hasher: PasswordHasher):
+        user = mf.user.user(password=password_hasher.hash("password"))
+        request = LoginPayload(email=user.email, password="password")
 
         response: LoginResponse = user_service.Login(request)
 

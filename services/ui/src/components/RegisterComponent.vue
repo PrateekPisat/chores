@@ -6,10 +6,11 @@
         <q-input
           filled
           v-model="store.registerPayload.firstName"
-          @update:model-value="store.validateRegisterPayload()"
+          @blur="store.validateRegisterPayload()"
           label="First Name"
           type="text"
-          clearable
+          :error="!!store.getErrors('firstName')"
+          :error-message="store.getErrors('firstName')"
         >
           <template v-slot:prepend>
             <q-icon :name="mdiAccount" />
@@ -18,10 +19,11 @@
         <q-input
           filled
           v-model="store.registerPayload.lastName"
-          @update:model-value="store.validateRegisterPayload()"
+          @blur="store.validateRegisterPayload()"
           label="Last Name"
           type="text"
-          clearable
+          :error="!!store.getErrors('lastName')"
+          :error-message="store.getErrors('lastName')"
         >
           <template v-slot:prepend>
             <q-icon :name="mdiAccount" />
@@ -30,10 +32,11 @@
         <q-input
           filled
           v-model="store.registerPayload.email"
-          @update:model-value="store.validateRegisterPayload()"
+          @blur="store.validateRegisterPayload()"
           label="Email"
           type="email"
-          clearable
+          :error="!!store.getErrors('email')"
+          :error-message="store.getErrors('email')"
         >
           <template v-slot:prepend>
             <q-icon :name="mdiEmail" />
@@ -42,10 +45,11 @@
         <q-input
           filled
           v-model="store.registerPayload.password"
-          @update:model-value="store.validateRegisterPayload()"
+          @blur="store.validateRegisterPayload()"
           label="Password"
           type="password"
-          clearable
+          :error="!!store.getErrors('password')"
+          :error-message="store.getErrors('password')"
         >
           <template v-slot:prepend>
             <q-icon :name="mdiLock" />
@@ -53,11 +57,12 @@
         </q-input>
         <q-input
           filled
-          v-model=""
-          @update:model-value="store.validateRegisterPayload()"
+          v-model="store.registerPayload.confirmPassword"
+          @blur="store.validateRegisterPayload()"
           label="Confirm Password"
           type="password"
-          clearable
+          :error="!!store.getErrors('confirmPassword')"
+          :error-message="store.getErrors('confirmPassword')"
         >
           <template v-slot:prepend>
             <q-icon :name="mdiLock" />
@@ -67,9 +72,13 @@
           class="full-width"
           label="Register"
           color="dark"
-          :disable="store.hasRegisterErrors"
-          @click="store.register()"
-        />
+          :disable="!canRegister"
+          @click="register()"
+        >
+          <template v-slot:loading>
+            <q-spinner-pie color="secondary" />
+          </template>
+        </q-btn>
       </q-card-section>
       <q-card-section class="text-subtitle2">Already a Member?</q-card-section>
       <q-card-section>
@@ -85,11 +94,32 @@
 </template>
 
 <script setup lang="ts">
-import { useUserStore } from 'src/stores/userStore';
+import { userRegisterStore } from 'src/stores/registerStore';
 import { mdiAccount, mdiEmail, mdiLock } from '@quasar/extras/mdi-v7';
 import { QForm } from 'quasar';
+import { computed, inject, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { VueCookies } from 'vue-cookies';
 
 const emit = defineEmits(['login']);
 
-const store = useUserStore();
+const store = userRegisterStore();
+const router = useRouter();
+const cookies = inject<VueCookies>('$cookies');
+
+const canRegister = computed(() => {
+  return !!!store.errors && !store.loading;
+});
+
+onMounted(() => {
+  store.reset();
+});
+function register() {
+  store.register().then((response) => {
+    if (response && cookies) {
+      cookies?.set('user', response, '1d');
+      router.push({ name: 'home' });
+    }
+  });
+}
 </script>

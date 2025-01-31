@@ -1,10 +1,34 @@
 import { boot } from 'quasar/wrappers';
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosError, AxiosInstance } from 'axios';
+import { join } from 'lodash';
+import { z } from 'zod';
 
 declare module 'vue' {
   interface ComponentCustomProperties {
     $axios: AxiosInstance;
     $api: AxiosInstance;
+  }
+}
+
+const UnprocessableEntityResponse = z.record(z.array(z.string()));
+
+class ErrorMap extends Map<string, string[]> {
+  getString(key: string): string {
+    return join(super.get(key));
+  }
+}
+
+class ValidationError {
+  errors: ErrorMap = new ErrorMap();
+
+  constructor(err: AxiosError) {
+    const result = UnprocessableEntityResponse.safeParse(err.response?.data);
+    if (result.success) {
+      this.errors = new ErrorMap(Object.entries(result.data));
+    }
+
+    // Backwards compatibility with code that doesn't know about the ValidationError class
+    Object.assign(this, err);
   }
 }
 
@@ -14,7 +38,10 @@ declare module 'vue' {
 // good idea to move this instance creation inside of the
 // "export default () => {}" function below (which runs individually
 // for each client)
-const api = axios.create({ baseURL: 'https://api.example.com' });
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL, timeout: 5 * 60 * 1000,
+  responseType: 'json',
+});
 
 export default boot(({ app }) => {
   // for use inside Vue files (Options API) through this.$axios and this.$api
@@ -28,4 +55,16 @@ export default boot(({ app }) => {
   //       so you can easily perform requests against your app's API
 });
 
-export { api };
+
+function registerResponseMappers(http: AxiosInstance) {
+  http.interceptors.response.use(undefined, (err) => {
+    if (axios.isAxiosError(err) && err.response?.status === 422) {
+      return Promise.reject(new ValidationError(err));
+    }
+    return Promise.reject(err);
+  });
+}
+
+registerResponseMappers(api);
+
+export { api, ErrorMap, ValidationError };

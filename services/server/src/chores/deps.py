@@ -1,3 +1,4 @@
+from argon2 import PasswordHasher
 from dependency_injector import containers, providers
 
 from chores.config import load_config
@@ -9,3 +10,4 @@ class Container(containers.DeclarativeContainer):
 
     config = providers.Callable(load_config)
     database = providers.Singleton(Database, config=config)
+    password_hasher = providers.Factory(PasswordHasher)

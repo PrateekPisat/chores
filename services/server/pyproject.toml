@@ -24,6 +24,7 @@ grpc-interceptor = {version = "^0.15.4", extras = ["testing"]}
 pyjwt = {version = "^2.9.0", extras = ["crypto"]}
 setuplog = "^0.4.1"
 email-validator = "^2.2.0"
+argon2-cffi = "^23.1.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.2"

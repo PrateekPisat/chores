@@ -1,4 +1,7 @@
 <template>
+  <pre>
+    {{ cookies?.get('token') }}
+  </pre>
   <q-page class="row items-center justify-evenly">
     <ExampleComponent
       title="Example component"
@@ -10,9 +13,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { inject, ref } from 'vue';
 import { Todo, Meta } from 'components/models';
 import ExampleComponent from 'components/ExampleComponent.vue';
+import { VueCookies } from 'vue-cookies';
 
 defineOptions({
   name: 'IndexPage',
@@ -44,4 +48,6 @@ const todos = ref<Todo[]>([
 const meta = ref<Meta>({
   totalCount: 1200,
 });
+
+const cookies = inject<VueCookies>('$cookies');
 </script>
