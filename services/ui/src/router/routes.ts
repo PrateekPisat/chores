@@ -1,4 +1,6 @@
 import { RouteRecordRaw } from 'vue-router';
+import { authGuard } from '@auth0/auth0-vue';
+
 
 const routes: RouteRecordRaw[] = [
   {
@@ -9,17 +11,7 @@ const routes: RouteRecordRaw[] = [
         path: '',
         component: () => import('pages/IndexPage.vue'),
         name: 'home',
-      },
-    ],
-  },
-  {
-    path: '/login',
-    component: () => import('layouts/LoginLayout.vue'),
-    children: [
-      {
-        path: '',
-        component: () => import('pages/LoginPage.vue'),
-        name: 'login',
+        beforeEnter: authGuard,
       },
     ],
   },
@@ -29,6 +21,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue'),
+    beforeEnter: authGuard,
   },
 ];
 

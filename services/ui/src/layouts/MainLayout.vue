@@ -7,7 +7,7 @@
         <q-toolbar-title> Chores </q-toolbar-title>
 
         <q-space />
-        <q-btn flat :icon="mdiLogout" :to="{ name: 'login' }" label="Logout" />
+        <ProfileButtons />
       </q-toolbar>
     </q-header>
 
@@ -22,8 +22,8 @@
 </template>
 
 <script setup>
-import { mdiLogout } from '@quasar/extras/mdi-v7';
 import { ref } from 'vue';
+import ProfileButtons from 'src/components/ProfileButtons.vue';
 
 const leftDrawerOpen = ref(false);
 </script>
