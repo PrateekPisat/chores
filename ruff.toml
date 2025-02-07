@@ -4,14 +4,29 @@ target-version = "py312"
 
 
 [lint]
-select = ["C", "D", "E", "F", "I", "N", "Q", "RET", "RUF", "S", "T", "UP", "YTT"]
+select = [
+    "C",
+    "D",
+    "E",
+    "F",
+    "I",
+    "N",
+    "Q",
+    "RET",
+    "RUF",
+    "S",
+    "T",
+    "UP",
+    "YTT",
+]
 ignore = [
     "C901",
     "E501",
     "S101",
-    "N818",  # Exceptions must end with "Error" or other qualifiers (would enable, we just have some violations currently).
-    "N999",  # Invalid module name, seeming false positives
-    "N802",  # Function name should be lowercase, we should un-ignore this
+    "N818", # Exceptions must end with "Error" or other qualifiers (would enable, we just have some violations currently).
+    "N999", # Invalid module name, seeming false positives
+    "N802", # Function name should be lowercase, we should un-ignore this
+    "D401", # First line should be in imperative mood, we should un-ignore this
 ]
 extend-select = ["D"]
 extend-ignore = [
@@ -28,13 +43,19 @@ extend-ignore = [
     "D408",
     "D409",
     "D413",
-    "C408",  # Unnecessary `dict` call, we should un-ignore this
-    "RET504",  # Unnecessary variable assignment before return, we should un-ignore this
+    "C408",   # Unnecessary `dict` call, we should un-ignore this
+    "RET504", # Unnecessary variable assignment before return, we should un-ignore this
     "RUF012",
 ]
 
 [lint.pep8-naming]
-classmethod-decorators = ["classmethod", "root_validator", "validator", "pydantic.root_validator", "pydantic.validator"]
+classmethod-decorators = [
+    "classmethod",
+    "root_validator",
+    "validator",
+    "pydantic.root_validator",
+    "pydantic.validator",
+]
 
 [lint.isort]
 known-first-party = ["ma"]

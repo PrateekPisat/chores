@@ -7,7 +7,7 @@
         <q-toolbar-title> Chores </q-toolbar-title>
 
         <q-space />
-        <ProfileButtons />
+        <ProfileDropdown :user="userStore.user" @logout="logout" />
       </q-toolbar>
     </q-header>
 
@@ -23,7 +23,21 @@
 
 <script setup>
 import { ref } from 'vue';
-import ProfileButtons from 'src/components/ProfileButtons.vue';
-
+import ProfileDropdown from 'src/components/ProfileDropdown.vue';
+import { onMounted } from 'vue';
+import { userUserStore } from 'src/stores/userStore';
+const userStore = userUserStore();
 const leftDrawerOpen = ref(false);
+
+onMounted(() => {
+  userStore.syncUser();
+});
+
+function logout() {
+  userStore.auth0.logout({
+    logoutParams: {
+      returnTo: window.location.origin,
+    },
+  });
+}
 </script>

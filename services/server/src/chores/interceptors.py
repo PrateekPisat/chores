@@ -8,10 +8,8 @@ from grpc_interceptor.exceptions import GrpcException
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
 from chores.config import Config
-from chores.db import Database
 from chores.deps import Container
 from chores.errors import Unauthenticated
-from chores.models.user import TokenBlacklist
 
 
 class ExceptionToStatusInterceptor(ServerInterceptor):
@@ -39,7 +37,6 @@ class AuthInterceptor(ServerInterceptor):
         context: _Context,
         method_name: str,
         config: Config = Provide[Container.config],
-        database: Database = Provide[Container.database],
     ):
         if method_name == "/chores.Users/Login" or method_name == "/chores.Users/Register":
             return method(request_or_iterator, context)
@@ -60,9 +57,5 @@ class AuthInterceptor(ServerInterceptor):
             raise Unauthenticated("Invalid token")
         except StopIteration:
             raise Unauthenticated("Missing token")
-
-        with database.session() as session:
-            if session.query(TokenBlacklist).filter(TokenBlacklist.token == token).one_or_none():
-                raise Unauthenticated("Token has expired")
 
         return method(request_or_iterator, context)

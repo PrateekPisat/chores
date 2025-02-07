@@ -12,7 +12,9 @@
               />
             </q-item-section>
             <q-item-section>
-              <q-item-label>Profile</q-item-label>
+              <q-item-label>
+                <router-link :to="profileLink">Profile</router-link>
+              </q-item-label>
             </q-item-section>
           </q-item>
 
@@ -42,7 +44,7 @@
           <q-btn
             flat
             :icon="mdiLogout"
-            @click="logout"
+            @click="emit('logout')"
             label="Logout"
             push
             size="sm"
@@ -54,24 +56,24 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useAuth0 } from '@auth0/auth0-vue';
 import { computed } from 'vue';
 import { mdiLogout, mdiFaceManProfile } from '@quasar/extras/mdi-v7';
+import { AppUser } from 'src/stores/userStore';
 
-const auth0 = useAuth0();
+const props = defineProps<{
+  user: AppUser;
+}>();
+
+const emit = defineEmits(['logout']);
 
 const userIcon = computed(() => {
-  return auth0.user.value?.picture;
+  return props.user.picture || '';
 });
 const userName = computed(() => {
-  return auth0.user.value?.name;
+  return props.user.first_name + props.user.last_name;
 });
 
-function logout() {
-  auth0.logout({
-    logoutParams: {
-      returnTo: window.location.origin,
-    },
-  });
-}
+const profileLink = computed(() => {
+  return { name: 'profile', params: { userId: props.user.user_id } };
+});
 </script>

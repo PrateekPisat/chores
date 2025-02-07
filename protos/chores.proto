@@ -30,13 +30,11 @@ service House{
 }
 
 service Users{
- rpc Register(RegisterPayload) returns (RegisterResponse) {}
- rpc Login(LoginPayload) returns (LoginResponse) {}
- rpc Logout(LogoutPayload) returns (LogoutResponse) {}
  rpc GetUser(GetUserPayload) returns (GetUserResponse) {}
  rpc UpdateUser(UpdateUserPayload) returns (UpdateUserResponse) {}
  rpc DeleteUser(DeleteUserPayload) returns (DeleteUserResponse) {}
  rpc SearchUser(SearchUserPayload) returns (SearchUserResponse) {}
+ rpc SyncUser(SyncUserPayload) returns (SyncUserResponse) {}
 }
 
 enum Cadence {
@@ -51,6 +49,9 @@ message User{
     string email = 2;
     string first_name = 3;
     string last_name = 4;
+    string sub = 5; // Auth0 Sub
+    string picture = 6;
+    string nickname = 7;
 }
 
 message Chore{
@@ -131,10 +132,6 @@ message CreateDistributionPayload{
     repeated string user_ids = 2;
 }
 
-message CreateDistributionErrorResponse{
-    string chore_id = 1;
-    string user_ids = 2;
-}
 
 message CreateDistributionResponse{
     string id = 1; // Chore ID
@@ -152,11 +149,6 @@ message GetDistributionResponse{
 message UpdateDistributionPayload{
     string chore_id = 1;
     repeated string user_ids = 2;
-}
-
-message UpdateDistributionErrorResponse{
-    string chore_id = 1;
-    string user_ids = 2;
 }
 
 message UpdateDistributionResponse{
@@ -206,10 +198,6 @@ message CreatePayload{
     string name = 1;
 }
 
-message CreateErrorResponse{
-    string name = 1;
-}
-
 message CreateResponse{
     string house_id = 1;
 }
@@ -224,11 +212,6 @@ message GetResponse{
 }
 
 message UpdatePayload{
-    string house_id = 1;
-    string name = 2;
-}
-
-message UpdateErrorResponse{
     string house_id = 1;
     string name = 2;
 }
@@ -270,51 +253,6 @@ message GetMembersResponse{
     repeated User users = 2;
 }
 
-message RegisterPayload{
-    string email = 1;
-    string password = 2;
-    string confirm_password = 3;
-    string first_name = 4;
-    string last_name = 5;
-}
-
-message RegisterErrorResponse{
-    string email = 1;
-    string password = 2;
-    string confirm_password = 3;
-    string first_name = 4;
-    string last_name = 5;
-}
-
-message RegisterResponse{
-    string user_id = 1;
-    string token = 2;
-}
-
-message LoginPayload{
-    string email = 1;
-    string password = 2;
-}
-
-message LoginErrorResponse{
-    string email = 1;
-    string password = 2;
-}
-
-message LoginResponse{
-    string user_id = 1;
-    string token = 2;
-}
-
-message LogoutPayload{
-    string user_id = 1;
-    string token = 2;
-}
-
-message LogoutResponse{
-    string user_id = 1;
-}
-
 message GetUserPayload{
     string user_id = 1;
 }
@@ -324,6 +262,9 @@ message GetUserResponse{
     string email = 2;
     string first_name = 3;
     string last_name = 4;
+    string sub = 5; // Auth0 Sub
+    string picture = 6;
+    string nickname = 7;
 }
 
 message UpdateUserPayload{
@@ -333,12 +274,6 @@ message UpdateUserPayload{
     string last_name = 4;
 }
 
-message UpdateUserErrorResponse{
-    string user_id = 1;
-    string email = 2;
-    string first_name = 3;
-    string last_name = 4;
-}
 
 message UpdateUserResponse{
     string user_id = 1;
@@ -358,4 +293,17 @@ message SearchUserPayload{
 
 message SearchUserResponse{
     repeated GetUserResponse users = 1;
+}
+
+message SyncUserPayload{
+    string email = 2;
+    string first_name = 3;
+    string last_name = 4;
+    string sub = 5; // Auth0 Sub
+    string picture = 6;
+    string nickname = 7;
+}
+
+message SyncUserResponse{
+    User user = 1;
 }

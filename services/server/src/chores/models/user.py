@@ -16,7 +16,9 @@ class User(Base):
     first_name: Mapped[str] = mapped_column(String, nullable=False)
     last_name: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
-    password: Mapped[str] = mapped_column(String, nullable=False)
+    sub: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    picture: Mapped[str] = mapped_column(String, nullable=True)
+    nickname: Mapped[str] = mapped_column(String, nullable=True)
 
     houses = relationship("HouseMember", back_populates="user")
 
@@ -27,15 +29,11 @@ class User(Base):
             "first_name": self.first_name,
             "last_name": self.last_name,
             "email": self.email,
+            "sub": self.sub,
+            "picture": self.picture,
+            "nickname": self.nickname,
         }
 
     @property
     def name(self) -> str:
         return f"{self.first_name} {self.last_name}"
-
-
-class TokenBlacklist(Base):
-    __tablename__ = "token_blacklist"
-    __table_args__ = {"schema": "chores"}
-
-    token: Mapped[str] = mapped_column(String, primary_key=True)

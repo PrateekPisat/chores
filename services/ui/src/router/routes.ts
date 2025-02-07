@@ -13,6 +13,13 @@ const routes: RouteRecordRaw[] = [
         name: 'home',
         beforeEnter: authGuard,
       },
+      {
+        path: 'profile/:userId',
+        component: () => import('pages/ProfilePage.vue'),
+        name: 'profile',
+        beforeEnter: authGuard,
+        props: true,
+      },
     ],
   },
 

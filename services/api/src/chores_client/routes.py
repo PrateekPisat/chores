@@ -2,45 +2,9 @@ from chores_client import views
 
 user_routes = [
     {
-        "path": "/user",
-        "method": "POST",
-        "endpoint": views.user.register_user,
-        "tags": ["User"],
-    },
-    {
-        "path": "/userValidate",
-        "method": "POST",
-        "endpoint": views.user.check_user_payload,
-        "tags": ["User"],
-    },
-    {
-        "path": "/login",
-        "method": "POST",
-        "endpoint": views.user.login_user,
-        "tags": ["User"],
-    },
-    {
-        "path": "/loginValidate",
-        "method": "POST",
-        "endpoint": views.user.check_login_payload,
-        "tags": ["User"],
-    },
-    {
-        "path": "/logout",
-        "method": "POST",
-        "endpoint": views.user.logout_user,
-        "tags": ["User"],
-    },
-    {
         "path": "/user/{user_id}",
         "method": "GET",
         "endpoint": views.user.get_user,
-        "tags": ["User"],
-    },
-    {
-        "path": "/user/updateValidate",
-        "method": "POST",
-        "endpoint": views.user.check_update_payload,
         "tags": ["User"],
     },
     {
@@ -59,6 +23,12 @@ user_routes = [
         "path": "/user/search",
         "method": "POST",
         "endpoint": views.user.search_user,
+        "tags": ["User"],
+    },
+    {
+        "path": "/user/sync",
+        "method": "POST",
+        "endpoint": views.user.sync_user,
         "tags": ["User"],
     },
 ]

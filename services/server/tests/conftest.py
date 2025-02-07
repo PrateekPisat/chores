@@ -14,7 +14,7 @@ from chores.grpc_generated.chores_pb2_grpc import (
     UsersStub,
 )
 from chores.house_server import HouseServer
-from chores.interceptors import AuthInterceptor, ExceptionToStatusInterceptor
+from chores.interceptors import ExceptionToStatusInterceptor
 from chores.models.base import Base
 from chores.task_server import TaskServer
 from chores.users_server import UsersServer
@@ -104,7 +104,7 @@ def container(config: Config, db: Session):
 
 @pytest.fixture
 def interceptors():
-    return [ExceptionToStatusInterceptor(), AuthInterceptor()]
+    return [ExceptionToStatusInterceptor()]
 
 
 @pytest.fixture
