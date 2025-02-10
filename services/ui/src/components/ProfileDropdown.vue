@@ -3,20 +3,20 @@
     <q-btn-dropdown label="Profile" flat>
       <div class="row no-wrap q-pa-sm">
         <q-list>
-          <q-item clickable v-close-popup>
-            <q-item-section avatar>
-              <q-avatar
-                :icon="mdiFaceManProfile"
-                color="primary"
-                text-color="white"
-              />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>
-                <router-link :to="profileLink">Profile</router-link>
-              </q-item-label>
-            </q-item-section>
-          </q-item>
+          <router-link :to="profileLink">
+            <q-item clickable v-close-popup>
+              <q-item-section avatar>
+                <q-avatar
+                  :icon="mdiFaceManProfile"
+                  color="primary"
+                  text-color="white"
+                />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label> Profile </q-item-label>
+              </q-item-section>
+            </q-item>
+          </router-link>
 
           <q-item clickable v-close-popup>
             <q-item-section avatar>

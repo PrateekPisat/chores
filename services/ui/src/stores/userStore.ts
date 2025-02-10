@@ -33,6 +33,9 @@ export const userUserStore = defineStore('user', {
     },
     user(): AppUser {
       return this.appUser
+    },
+    isVerified(): boolean {
+      return this.auth0User?.email_verified || false
     }
   },
   actions: {
