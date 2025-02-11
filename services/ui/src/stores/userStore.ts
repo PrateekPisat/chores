@@ -46,8 +46,8 @@ export const userUserStore = defineStore('user', {
       this.loading = true
       api.post('/user/sync', {
         email: this.auth0User?.email,
-        firstName: this.auth0User?.given_name,
-        lastName: this.auth0User?.family_name,
+        firstName: this.auth0User?.given_name || this.auth0User?.nickname,
+        lastName: this.auth0User?.family_name || this.auth0User?.nickname,
         picture: this.auth0User?.picture,
         nickname: this.auth0User?.nickname,
         sub: this.auth0User?.sub,
@@ -58,6 +58,12 @@ export const userUserStore = defineStore('user', {
     getUser(userId: string) {
       this.loading = true
       api.get('/user/' + userId).then((response) => { this.appUser = response.data })
+        .catch((err) => { this.errors = handleError(err) })
+        .finally(() => { this.loading = false })
+    },
+    updateUser() {
+      this.loading = true
+      api.put('/user/' + this.appUser.user_id, this.appUser).then((response) => { this.appUser = response.data })
         .catch((err) => { this.errors = handleError(err) })
         .finally(() => { this.loading = false })
     },

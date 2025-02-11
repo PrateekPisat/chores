@@ -4,7 +4,7 @@
       <h1 id="page-title" class="content__title">Home PAge</h1>
       <div class="content__body">
         <pre>
-          {{ userStore.appUser }}
+          {{ userStore.auth0User }}
         </pre>
       </div>
     </div>

@@ -1,13 +1,5 @@
 <template>
-  <div class="q-pa-md q-gutter-sm">
-    <q-breadcrumbs>
-      <template v-slot:separator>
-        <q-icon size="1.25em" :name="mdiChevronRight" color="primary" />
-      </template>
-      <q-breadcrumbs-el :icon="mdiHome" to="/" label="Home" />
-      <q-breadcrumbs-el :label="fullName" :icon="mdiAccount" />
-    </q-breadcrumbs>
-  </div>
+  <Breadcrumbs :elements="breadcrumbsElements" />
   <q-card class="my-card" flat bordered>
     <q-parallax src="https://picsum.photos/800/600" :height="150" />
 
@@ -18,40 +10,39 @@
         style="top: 0; transform: translateY(-60%)"
       >
         <img :src="userIcon" />
-        <q-badge color="primary" align="top" floating>
-          <q-icon :name="mdiCheckDecagram" />
-        </q-badge>
       </q-avatar>
     </q-card-section>
 
     <q-card-section class="q-pt-none">
       <div class="col text-h6 ellipsis">
-        <span>
-          {{ fullName }}
-        </span>
+        {{ fullName }}
       </div>
-      <div class="text-caption text-grey">
-        <span>
-          {{ user.email }}
-        </span>
+      <div class="text-caption">
+        <q-icon :name="mdiEmail" color="grey" />
+        {{ user.email }}
+      </div>
+      <div class="text-caption">
+        <q-icon :name="mdiIdentifier" color="grey" />
+        {{ user.nickname }}
       </div>
     </q-card-section>
 
     <q-tabs v-model="tab" align="left">
-      <q-tab label="Account Details" name="one" />
-      <q-tab label="Houses" name="two" />
-      <q-tab label="Roommates" name="three" />
+      <q-tab label="Details" name="details" />
+      <q-tab label="Houses" name="one" />
+      <q-tab label="Roommates" name="two" />
     </q-tabs>
 
     <q-separator />
     <q-tab-panels v-model="tab" animated>
-      <q-tab-panel name="one">
-        <div class="text-h4">
-          Title
-          <q-badge align="bottom">docs v1.0.0</q-badge>
-        </div>
+      <q-tab-panel name="details">
+        <UserForm :user="user" />
       </q-tab-panel>
-
+      <q-tab-panel name="one">
+        With so much content to display at once, and often so little screen
+        real-estate, Cards have fast become the design pattern of choice for
+        many companies, including the likes of Google and Twitter.
+      </q-tab-panel>
       <q-tab-panel name="two">
         With so much content to display at once, and often so little screen
         real-estate, Cards have fast become the design pattern of choice for
@@ -65,10 +56,12 @@ import { computed, onMounted, ref } from 'vue';
 import { userUserStore } from 'src/stores/userStore';
 import {
   mdiAccount,
-  mdiChevronRight,
+  mdiEmail,
   mdiHome,
-  mdiCheckDecagram,
+  mdiIdentifier,
 } from '@quasar/extras/mdi-v7';
+import Breadcrumbs from 'src/components/Breadcrumbs.vue';
+import UserForm from 'src/components/UserForm.vue';
 
 const tab = ref('one');
 const userStore = userUserStore();
@@ -79,6 +72,18 @@ const props = defineProps({
     required: true,
   },
 });
+
+const breadcrumbsElements = computed(() => [
+  {
+    label: 'Home',
+    icon: mdiHome,
+    to: '/',
+  },
+  {
+    label: fullName.value,
+    icon: mdiAccount,
+  },
+]);
 
 onMounted(() => {
   userStore.getUser(props.userId);
