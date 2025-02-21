@@ -160,26 +160,3 @@ class Test_UsersServer:
         assert users[0].sub == payload.sub
         assert users[0].picture == payload.picture
         assert users[0].nickname == payload.nickname
-
-    def test_it_syncs_existing_user(self, user_service: UsersStub, mf: ModelFactory, db: Session):
-        user = mf.user.user()
-        payload = SyncUserPayload(
-            email=user.email,
-            first_name="new first name",
-            last_name="new last name",
-            sub=user.sub,
-            picture=user.picture,
-            nickname="new nickname",
-        )
-
-        user_service.SyncUser(payload)
-
-        users = db.query(User).all()
-        assert len(users) == 1
-
-        assert users[0].email == payload.email
-        assert users[0].first_name == payload.first_name
-        assert users[0].last_name == payload.last_name
-        assert users[0].sub == payload.sub
-        assert users[0].picture == payload.picture
-        assert users[0].nickname == payload.nickname

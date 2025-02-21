@@ -6,10 +6,10 @@ import { api } from 'src/boot/axios';
 import { handleError } from 'src/utils';
 
 export interface AppUser {
-  user_id: string;
+  userId: string;
   email: string;
-  first_name: string;
-  last_name: string;
+  firstName: string;
+  lastName: string;
   sub: string;
   picture: string | null;
   nickname: string | null;
@@ -42,6 +42,14 @@ export const userUserStore = defineStore('user', {
     reset() {
       this.errors = null
     },
+    defaultUserArgs() {
+      return {
+        email: this.appUser.email,
+        picture: this.appUser.picture,
+        nickname: this.appUser.nickname,
+        sub: this.appUser.sub,
+      }
+    },
     syncUser() {
       this.loading = true
       api.post('/user/sync', {
@@ -61,9 +69,22 @@ export const userUserStore = defineStore('user', {
         .catch((err) => { this.errors = handleError(err) })
         .finally(() => { this.loading = false })
     },
-    updateUser() {
+    checkUpdate(firstName: string, lastName: string) {
       this.loading = true
-      api.put('/user/' + this.appUser.user_id, this.appUser).then((response) => { this.appUser = response.data })
+      api.post('/user/updateValidate', {
+        firstName: firstName,
+        lastName: lastName,
+        ...this.defaultUserArgs()
+      }).catch((err) => { this.errors = handleError(err) })
+        .finally(() => { this.loading = false })
+    },
+    updateUser(firstName: string, lastName: string) {
+      this.loading = true
+      api.put('/user/' + this.appUser.userId, {
+        first_name: firstName,
+        last_name: lastName,
+        ...this.defaultUserArgs()
+      }).then((response) => { this.getUser(response.data.userId) })
         .catch((err) => { this.errors = handleError(err) })
         .finally(() => { this.loading = false })
     },

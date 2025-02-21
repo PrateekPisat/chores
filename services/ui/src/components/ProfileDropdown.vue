@@ -70,10 +70,10 @@ const userIcon = computed(() => {
   return props.user.picture || '';
 });
 const userName = computed(() => {
-  return props.user.first_name + props.user.last_name;
+  return props.user.firstName + props.user.lastName;
 });
 
 const profileLink = computed(() => {
-  return { name: 'profile', params: { userId: props.user.user_id } };
+  return { name: 'profile', params: { userId: props.user.userId } };
 });
 </script>

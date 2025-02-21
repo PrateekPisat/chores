@@ -31,6 +31,12 @@ user_routes = [
         "endpoint": views.user.sync_user,
         "tags": ["User"],
     },
+    {
+        "path": "/user/updateValidate",
+        "method": "POST",
+        "endpoint": views.user.check_update_payload,
+        "tags": ["User"],
+    },
 ]
 
 house_routes = [
@@ -41,7 +47,7 @@ house_routes = [
         "tags": ["House"],
     },
     {
-        "path": "/houseValidate",
+        "path": "/house/houseValidate",
         "method": "POST",
         "endpoint": views.house.check_house_payload,
         "tags": ["House"],
@@ -98,7 +104,7 @@ task_routes = [
         "tags": ["Chore"],
     },
     {
-        "path": "/choreValidate",
+        "path": "/chore/choreValidate",
         "method": "POST",
         "endpoint": views.task.check_chore_payload,
         "tags": ["Chore"],

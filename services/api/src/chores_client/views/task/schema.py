@@ -3,7 +3,7 @@ from typing import Literal
 import pendulum
 from chores.grpc_generated.chores_pb2 import Cadence, CreateChorePayload
 from pydantic import BaseModel as PydanticBaseModel
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, field_validator, ValidationInfo
 
 from chores_client.views.user.schema import User
 
@@ -40,6 +40,16 @@ class ChoreDetails(BaseModel):
         except ValueError:
             raise ValueError("Invalid date format. Use YYYY-MM-DD")
 
+    @field_validator("end_date", mode="after", check_fields=True)
+    @classmethod
+    def validate_end_date(cls, value: str, values: ValidationInfo) -> str:
+        start_date = values.data.get("start_date")
+        if start_date and pendulum.from_format(value, "YYYY-MM-DD") < pendulum.from_format(
+            start_date, "YYYY-MM-DD"
+        ):
+            raise ValueError("End date must be after start date")
+        return value
+
     def grpc_model_dump(self):
         return CreateChorePayload(
             name=self.name,
@@ -54,7 +64,9 @@ class Chore(ChoreId, ChoreDetails): ...
 
 
 class UserIds(BaseModel):
-    user_ids: list[str] = Field(..., min_length=1, default_factory=list, alias="userIds")
+    user_ids: list[str] = Field(
+        ..., min_length=1, default_factory=list, alias="userIds", validation_alias="userIds"
+    )
 
 
 class ChoreDistribution(BaseModel):

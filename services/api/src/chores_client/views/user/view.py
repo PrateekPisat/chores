@@ -25,10 +25,10 @@ def get_user(user_id: str, users_client: UsersClientDep) -> User:
     user: GetUserResponse = users_client.GetUser(GetUserPayload(user_id=user_id))
 
     return User(
-        user_id=user.user_id,
+        userId=user.user_id,
         email=user.email,
-        first_name=user.first_name,
-        last_name=user.last_name,
+        firstName=user.first_name,
+        lastName=user.last_name,
         sub=user.sub,
         picture=user.picture,
         nickname=user.nickname,
@@ -36,29 +36,34 @@ def get_user(user_id: str, users_client: UsersClientDep) -> User:
 
 
 def check_update_payload(payload: UpdateUserRequest) -> UpdateUserRequest:
-    return UpdateUserRequest(**payload.model_dump())
+    return UpdateUserRequest(**payload.model_dump(by_alias=True))
 
 
 def update_user(user_id: str, payload: UpdateUserRequest, users_client: UsersClientDep) -> UserId:
     user: UpdateUserResponse = users_client.UpdateUser(
-        UpdateUserPayload(user_id=user_id, **payload.model_dump())
+        UpdateUserPayload(
+            user_id=user_id,
+            email=payload.email,
+            first_name=payload.first_name,
+            last_name=payload.last_name,
+        )
     )
-    return UserId(user_id=user.user_id)
+    return UserId(userId=user.user_id)
 
 
 def delete_user(user_id: str, users_client: UsersClientDep) -> UserId:
     user: DeleteUserResponse = users_client.DeleteUser(DeleteUserPayload(user_id=user_id))
-    return UserId(user_id=user.user_id)
+    return UserId(userId=user.user_id)
 
 
 def search_user(payload: SearchUserRequest, users_client: UsersClientDep) -> list[User]:
     response: SearchUserResponse = users_client.SearchUser(SearchUserPayload(email=payload.email))
     return [
         User(
-            user_id=user.user_id,
+            user_id=user.userId,
             email=user.email,
-            first_name=user.first_name,
-            last_name=user.last_name,
+            firstName=user.firstName,
+            lastName=user.lastName,
             sub=user.sub,
             picture=user.picture,
             nickname=user.nickname,
@@ -72,8 +77,8 @@ def sync_user(payload: SyncUserRequest, users_client: UsersClientDep) -> User:
     return User(
         user_id=response.user.id,
         email=response.user.email,
-        first_name=response.user.first_name,
-        last_name=response.user.last_name,
+        firstName=response.user.first_name,
+        lastName=response.user.last_name,
         sub=response.user.sub,
         picture=response.user.picture,
         nickname=response.user.nickname,

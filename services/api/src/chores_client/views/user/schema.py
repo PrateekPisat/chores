@@ -1,5 +1,5 @@
+from pydantic import AliasChoices, ConfigDict, Field
 from pydantic import BaseModel as PydanticBaseModel
-from pydantic import ConfigDict, Field
 
 
 class BaseModel(PydanticBaseModel):
@@ -13,13 +13,17 @@ class AuthToken(BaseModel):
 
 
 class UserId(BaseModel):
-    user_id: str = Field(..., description="The ID of the user", min_length=1)
+    user_id: str = Field(..., description="The ID of the user", min_length=1, alias="userId")
 
 
 class User(UserId):
     email: str = Field(..., description="The email of the user", min_length=1)
-    first_name: str = Field(..., description="The first name of the user", min_length=1)
-    last_name: str = Field(..., description="The last name of the user", min_length=1)
+    first_name: str = Field(
+        ..., description="The first name of the user", min_length=1, alias="firstName"
+    )
+    last_name: str = Field(
+        ..., description="The last name of the user", min_length=1, alias="lastName"
+    )
     sub: str = Field(..., description="The Auth0 sub", min_length=1)
     picture: str | None = Field(None, description="The picture of the user")
     nickname: str | None = Field(None, description="The nickname of the user", alias="nickname")
@@ -28,10 +32,18 @@ class User(UserId):
 class UpdateUserRequest(BaseModel):
     email: str = Field(..., description="The email of the user", min_length=1)
     first_name: str = Field(
-        ..., description="The first name of the user", min_length=1, alias="firstName"
+        ...,
+        description="The first name of the user",
+        min_length=1,
+        alias="firstName",
+        validation_alias=AliasChoices("firstName"),
     )
     last_name: str = Field(
-        ..., description="The last name of the user", min_length=1, alias="lastName"
+        ...,
+        description="The last name of the user",
+        min_length=1,
+        alias="lastName",
+        validation_alias=AliasChoices("lastName"),
     )
     picture: str | None = Field(None, description="The picture of the user")
     nickname: str | None = Field(None, description="The nickname of the user")

@@ -118,13 +118,6 @@ class UsersServer(UsersServicer):
                     nickname=request.nickname,
                 )
                 db.add(user)
-            else:
-                user.email = request.email
-                user.first_name = request.first_name
-                user.last_name = request.last_name
-                user.picture = request.picture
-                user.nickname = request.nickname
-
             db.commit()
             return SyncUserResponse(user=user.as_dict)
 
