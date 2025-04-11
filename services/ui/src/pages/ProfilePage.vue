@@ -14,16 +14,25 @@
     </q-card-section>
 
     <q-card-section class="q-pt-none">
-      <div class="col text-h6 ellipsis">
-        {{ fullName }}
-      </div>
-      <div class="text-caption">
-        <q-icon :name="mdiEmail" color="grey" />
-        {{ user.email }}
-      </div>
-      <div class="text-caption">
-        <q-icon :name="mdiIdentifier" color="grey" />
-        {{ user.nickname }}
+      <div class="row">
+        <div class="col-11">
+          <div class="text-h6 ellipsis">
+            {{ fullName }}
+          </div>
+          <div class="text-caption">
+            <q-icon :name="mdiEmail" color="grey" />
+            {{ user.email }}
+          </div>
+          <div class="text-caption">
+            <q-icon :name="mdiIdentifier" color="grey" />
+            {{ user.nickname }}
+          </div>
+        </div>
+        <div class="col-1">
+          <q-btn class="q-pa-sm" flat @click="userStore.deleteUser()">
+            <q-icon :name="mdiTrashCan" color="negative" />
+          </q-btn>
+        </div>
       </div>
     </q-card-section>
 
@@ -40,6 +49,7 @@ import {
   mdiEmail,
   mdiHome,
   mdiIdentifier,
+  mdiTrashCan,
 } from '@quasar/extras/mdi-v7';
 import Breadcrumbs from 'src/components/BreadCrumbs.vue';
 import UserForm from 'src/components/UserForm.vue';

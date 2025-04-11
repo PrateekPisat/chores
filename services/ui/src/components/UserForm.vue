@@ -9,16 +9,16 @@
         <q-form
           @submit="userStore.updateUser(firstName, lastName)"
           @reset="reset()"
-          class="q-gutter-xs"
+          class="q-gutter-sm"
         >
           <q-input
             filled
-            bottom-slots
+            type="text"
             v-model="firstName"
             label="First Name"
-            @blur="userStore.updateUser(firstName, lastName)"
-            :error-message="userStore.getErrors('first_name')"
-            :error="!!userStore.getErrors('first_name')"
+            @blur="userStore.checkUpdate(firstName, lastName)"
+            :error-message="userStore.getErrors('firstName')"
+            :error="!!userStore.getErrors('firstName')"
           >
             <template v-slot:prepend>
               <q-icon :name="mdiAlphaABox" />
@@ -27,10 +27,9 @@
 
           <q-input
             filled
-            bottom-slots
             v-model="lastName"
             label="Last Name"
-            @blur="userStore.updateUser(firstName, lastName)"
+            @blur="userStore.checkUpdate(firstName, lastName)"
             :error-message="userStore.getErrors('lastName')"
             :error="!!userStore.getErrors('lastName')"
           >
@@ -46,13 +45,15 @@
               :icon="mdiCheck"
               label="Save"
               rounded
+              :disable="canSave"
             />
             <q-btn
               type="reset"
               color="dark"
               :icon="mdiCancel"
-              label="Cancel"
+              label="Clear"
               rounded
+              :disable="!canClear"
             />
           </div>
         </q-form>
@@ -68,15 +69,26 @@ import {
   mdiCheck,
 } from '@quasar/extras/mdi-v7';
 import { userUserStore } from 'src/stores/userStore';
-import { ref } from 'vue';
+import { computed, Ref, ref } from 'vue';
 
 const userStore = userUserStore();
-const firstName = ref(userStore.appUser.firstName);
-const lastName = ref(userStore.appUser.lastName);
+const firstName: Ref<string | number | null> = ref(userStore.appUser.firstName);
+const lastName: Ref<string | number | null> = ref(userStore.appUser.lastName);
 
 function reset() {
   firstName.value = userStore.appUser.firstName;
   lastName.value = userStore.appUser.lastName;
   userStore.reset();
 }
+
+const canClear = computed(() => {
+  return (
+    firstName.value !== userStore.appUser.firstName ||
+    lastName.value !== userStore.appUser.lastName
+  );
+});
+
+const canSave = computed(() => {
+  return !!userStore.errors;
+});
 </script>

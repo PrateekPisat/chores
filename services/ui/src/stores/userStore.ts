@@ -36,7 +36,19 @@ export const userUserStore = defineStore('user', {
     },
     isVerified(): boolean {
       return this.auth0User?.email_verified || false
-    }
+    },
+    userName(): string {
+      if (this.appUser.firstName && this.appUser.lastName) {
+        return this.appUser.firstName + ' ' + this.appUser.lastName
+      }
+      if (this.appUser.nickname) {
+        return this.appUser.nickname
+      }
+      if (this.appUser.email) {
+        return this.appUser.email
+      }
+      return ''
+    },
   },
   actions: {
     reset() {
@@ -69,22 +81,34 @@ export const userUserStore = defineStore('user', {
         .catch((err) => { this.errors = handleError(err) })
         .finally(() => { this.loading = false })
     },
-    checkUpdate(firstName: string, lastName: string) {
+    checkUpdate(firstName: string | number | null, lastName: string | number | null) {
       this.loading = true
       api.post('/user/updateValidate', {
         firstName: firstName,
         lastName: lastName,
         ...this.defaultUserArgs()
-      }).catch((err) => { this.errors = handleError(err) })
+      })
+        .then(() => { this.errors = null })
+        .catch((err) => { this.errors = handleError(err) })
         .finally(() => { this.loading = false })
     },
-    updateUser(firstName: string, lastName: string) {
+    updateUser(firstName: string | number | null, lastName: string | number | null) {
       this.loading = true
       api.put('/user/' + this.appUser.userId, {
         first_name: firstName,
         last_name: lastName,
         ...this.defaultUserArgs()
       }).then((response) => { this.getUser(response.data.userId) })
+        .catch((err) => { this.errors = handleError(err) })
+        .finally(() => { this.loading = false })
+    },
+    deleteUser() {
+      if (!this.appUser.userId) {
+        console.error('No userId found in appUser')
+      }
+
+      this.loading = true
+      api.delete('/user/' + this.appUser.userId).then(() => { this.auth0.logout() })
         .catch((err) => { this.errors = handleError(err) })
         .finally(() => { this.loading = false })
     },

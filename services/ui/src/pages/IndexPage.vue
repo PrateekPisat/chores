@@ -1,14 +1,15 @@
 <template>
-  <q-page class="row items-center justify-evenly">
-    <div class="content-layout">
-      <h1 id="page-title" class="content__title">Home PAge</h1>
-      <div class="content__body">
-        <pre>
+  <div class="content-layout">
+    <h3 id="page-title" class="content__title">
+      Hello {{ userStore.appUser.firstName }} 👋
+    </h3>
+    <div class="content__body">
+      <pre>
           {{ userStore.auth0User }}
-        </pre>
-      </div>
+        </pre
+      >
     </div>
-  </q-page>
+  </div>
 </template>
 
 <script setup lang="ts">
