@@ -37,6 +37,12 @@ user_routes = [
         "endpoint": views.user.check_update_payload,
         "tags": ["User"],
     },
+    {
+        "path": "/user/{user_id}/houses",
+        "method": "GET",
+        "endpoint": views.house.list_houses,
+        "tags": ["House"],
+    },
 ]
 
 house_routes = [
@@ -50,6 +56,12 @@ house_routes = [
         "path": "/house/houseValidate",
         "method": "POST",
         "endpoint": views.house.check_house_payload,
+        "tags": ["House"],
+    },
+    {
+        "path": "/house/search",
+        "method": "POST",
+        "endpoint": views.house.search,
         "tags": ["House"],
     },
     {

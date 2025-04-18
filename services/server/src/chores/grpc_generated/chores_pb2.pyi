@@ -1,6 +1,8 @@
 from collections.abc import Iterable as _Iterable
 from collections.abc import Mapping as _Mapping
-from typing import ClassVar as _ClassVar
+from typing import (
+    ClassVar as _ClassVar,
+)
 
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -345,6 +347,18 @@ class GetPayload(_message.Message):
     house_id: str
     def __init__(self, house_id: str | None = ...) -> None: ...
 
+class ListHousePayload(_message.Message):
+    __slots__ = ("user_id",)
+    USER_ID_FIELD_NUMBER: _ClassVar[int]
+    user_id: str
+    def __init__(self, user_id: str | None = ...) -> None: ...
+
+class SearchHousePayload(_message.Message):
+    __slots__ = ("name",)
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    def __init__(self, name: str | None = ...) -> None: ...
+
 class GetResponse(_message.Message):
     __slots__ = ("house_id", "name")
     HOUSE_ID_FIELD_NUMBER: _ClassVar[int]
@@ -352,6 +366,20 @@ class GetResponse(_message.Message):
     house_id: str
     name: str
     def __init__(self, house_id: str | None = ..., name: str | None = ...) -> None: ...
+
+class HouseResponse(_message.Message):
+    __slots__ = ("house_id", "name")
+    HOUSE_ID_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    house_id: str
+    name: str
+    def __init__(self, house_id: str | None = ..., name: str | None = ...) -> None: ...
+
+class ListHousesResponse(_message.Message):
+    __slots__ = ("houses",)
+    HOUSES_FIELD_NUMBER: _ClassVar[int]
+    houses: _containers.RepeatedCompositeFieldContainer[HouseResponse]
+    def __init__(self, houses: _Iterable[HouseResponse | _Mapping] | None = ...) -> None: ...
 
 class UpdatePayload(_message.Message):
     __slots__ = ("house_id", "name")

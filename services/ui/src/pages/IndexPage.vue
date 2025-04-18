@@ -1,15 +1,13 @@
 <template>
-  <div class="content-layout">
-    <h3 id="page-title" class="content__title">
-      Hello {{ userStore.appUser.firstName }} 👋
-    </h3>
-    <div class="content__body">
-      <pre>
-          {{ userStore.auth0User }}
-        </pre
-      >
+  <q-page padding>
+    <div>
+      <p class="text-h3">Hello {{ userStore.appUser.firstName }} 👋</p>
+      <p class="text-subtitle1 text-weight-light q-pl-sm text-primary">
+        Let's get your tasks organized!
+      </p>
     </div>
-  </div>
+    <pre> {{ userStore.auth0User }} </pre>
+  </q-page>
 </template>
 
 <script setup lang="ts">

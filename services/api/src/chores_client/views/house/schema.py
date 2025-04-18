@@ -18,6 +18,11 @@ class HouseId(BaseModel):
     id: str = Field(..., min_length=1)
 
 
+class HouseResponse(BaseModel):
+    id: str = Field(..., min_length=1)
+    name: str = Field(..., min_length=1)
+
+
 class HouseMembers(BaseModel):
     house_id: str = Field(..., min_length=1, alias="houseId")
     user_ids: list[str] = Field(..., min_length=1, alias="userIds")

@@ -8,7 +8,10 @@ from chores.grpc_generated.chores_pb2 import (
     CreatePayload,
     DeletePayload,
     GetPayload,
+    HouseResponse,
+    ListHousePayload,
     RemoveMemberPayload,
+    SearchHousePayload,
     UpdatePayload,
 )
 from chores.grpc_generated.chores_pb2_grpc import HouseStub
@@ -32,6 +35,31 @@ class Test_HouseServer:
         assert house
         assert house.name == request.name
         assert str(house.id) == response.house_id
+
+    def test_it_lists_houses(self, house_service: HouseStub, db: Session, mf: ModelFactory, config: Config):
+        user = mf.user.user(email="test@example.com")
+        house = mf.house.house()
+        mf.house.house_member(house_id=house.id, user_id=user.id)
+        request = ListHousePayload(user_id=str(user.id))
+
+        token = get_token_payload(user, config.cryptography.secret_key)
+        response = house_service.ListHouses(request, metadata=(("authorization", f"Bearer {token}"),))
+
+        assert len(response.houses) == 1
+        assert response.houses == [HouseResponse(house_id=str(house.id), name=house.name)]
+
+    @pytest.mark.parametrize("name", ["House 1", "House", "Hou", "house 1"])
+    def test_it_searches_houses_by_name(self, house_service: HouseStub, mf: ModelFactory, config: Config, name: str):
+        user = mf.user.user(email="test@example.com")
+        house = mf.house.house(name="House 1")
+        mf.house.house_member(house_id=house.id, user_id=user.id)
+        request = SearchHousePayload(name=name)
+
+        token = get_token_payload(user, config.cryptography.secret_key)
+        response = house_service.SearchHouse(request, metadata=(("authorization", f"Bearer {token}"),))
+
+        assert len(response.houses) == 1
+        assert response.houses == [HouseResponse(house_id=str(house.id), name=house.name)]
 
     def test_it_gets_a_house(self, house_service: HouseStub, db: Session, mf: ModelFactory, config: Config):
         user = mf.user.user(email="test@example.com")

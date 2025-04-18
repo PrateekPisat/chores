@@ -604,6 +604,18 @@ class HouseStub:
             response_deserializer=chores__pb2.DeleteResponse.FromString,
             _registered_method=True,
         )
+        self.ListHouses = channel.unary_unary(
+            "/chores.House/ListHouses",
+            request_serializer=chores__pb2.ListHousePayload.SerializeToString,
+            response_deserializer=chores__pb2.ListHousesResponse.FromString,
+            _registered_method=True,
+        )
+        self.SearchHouse = channel.unary_unary(
+            "/chores.House/SearchHouse",
+            request_serializer=chores__pb2.SearchHousePayload.SerializeToString,
+            response_deserializer=chores__pb2.ListHousesResponse.FromString,
+            _registered_method=True,
+        )
         self.AddMembers = channel.unary_unary(
             "/chores.House/AddMembers",
             request_serializer=chores__pb2.AddMembersPayload.SerializeToString,
@@ -651,6 +663,18 @@ class HouseServicer:
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
+    def ListHouses(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def SearchHouse(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
     def AddMembers(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -691,6 +715,16 @@ def add_HouseServicer_to_server(servicer, server):
             servicer.Delete,
             request_deserializer=chores__pb2.DeletePayload.FromString,
             response_serializer=chores__pb2.DeleteResponse.SerializeToString,
+        ),
+        "ListHouses": grpc.unary_unary_rpc_method_handler(
+            servicer.ListHouses,
+            request_deserializer=chores__pb2.ListHousePayload.FromString,
+            response_serializer=chores__pb2.ListHousesResponse.SerializeToString,
+        ),
+        "SearchHouse": grpc.unary_unary_rpc_method_handler(
+            servicer.SearchHouse,
+            request_deserializer=chores__pb2.SearchHousePayload.FromString,
+            response_serializer=chores__pb2.ListHousesResponse.SerializeToString,
         ),
         "AddMembers": grpc.unary_unary_rpc_method_handler(
             servicer.AddMembers,
@@ -826,6 +860,66 @@ class House:
             "/chores.House/Delete",
             chores__pb2.DeletePayload.SerializeToString,
             chores__pb2.DeleteResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True,
+        )
+
+    @staticmethod
+    def ListHouses(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/chores.House/ListHouses",
+            chores__pb2.ListHousePayload.SerializeToString,
+            chores__pb2.ListHousesResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True,
+        )
+
+    @staticmethod
+    def SearchHouse(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/chores.House/SearchHouse",
+            chores__pb2.SearchHousePayload.SerializeToString,
+            chores__pb2.ListHousesResponse.FromString,
             options,
             channel_credentials,
             insecure,

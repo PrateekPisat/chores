@@ -18,18 +18,31 @@
             </q-item>
           </router-link>
 
-          <q-item clickable v-close-popup>
-            <q-item-section avatar>
-              <q-avatar
-                icon="assignment"
-                color="secondary"
-                text-color="white"
-              />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Vacation</q-item-label>
-            </q-item-section>
-          </q-item>
+          <router-link :to="houseLink">
+            <q-item clickable v-close-popup>
+              <q-item-section avatar>
+                <q-avatar :icon="mdiHome" color="primary" text-color="white" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>House</q-item-label>
+              </q-item-section>
+            </q-item>
+          </router-link>
+
+          <router-link :to="profileLink">
+            <q-item clickable v-close-popup>
+              <q-item-section avatar>
+                <q-avatar
+                  :icon="mdiListBox"
+                  color="primary"
+                  text-color="white"
+                />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Tasks</q-item-label>
+              </q-item-section>
+            </q-item>
+          </router-link>
         </q-list>
 
         <q-separator vertical inset class="q-mx-md" />
@@ -57,7 +70,12 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
-import { mdiLogout, mdiFaceManProfile } from '@quasar/extras/mdi-v7';
+import {
+  mdiLogout,
+  mdiFaceManProfile,
+  mdiListBox,
+  mdiHome,
+} from '@quasar/extras/mdi-v7';
 import { AppUser } from 'src/stores/userStore';
 
 const props = defineProps<{
@@ -75,5 +93,9 @@ const userName = computed(() => {
 
 const profileLink = computed(() => {
   return { name: 'profile', params: { userId: props.user.userId } };
+});
+
+const houseLink = computed(() => {
+  return { name: 'houses', params: { userId: props.user.userId } };
 });
 </script>

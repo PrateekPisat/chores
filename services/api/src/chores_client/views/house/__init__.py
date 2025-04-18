@@ -6,7 +6,9 @@ from chores_client.views.house.view import (
     delete_house,
     get_house,
     get_members,
+    list_houses,
     remove_member,
+    search,
     update_house,
 )
 
@@ -18,6 +20,8 @@ __all__ = [
     "delete_house",
     "get_house",
     "get_members",
+    "list_houses",
     "remove_member",
+    "search",
     "update_house",
 ]

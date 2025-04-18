@@ -6,7 +6,6 @@ from itertools import cycle, zip_longest
 import grpc
 from dependency_injector.wiring import inject, Provide
 from grpc._server import _Context
-from pydantic import ValidationError
 from setuplog import log, setup_logging
 from sqlalchemy import delete
 from sqlalchemy.orm import selectinload
@@ -16,7 +15,6 @@ from chores.deps import Container
 from chores.errors import NotFound
 from chores.grpc_generated.chores_pb2 import (
     Cadence,
-    CreateChoreErrorsResponse,
     CreateChorePayload,
     CreateChoreResponse,
     CreateDistributionPayload,
@@ -50,24 +48,10 @@ from chores.grpc_generated.chores_pb2_grpc import add_TaskServicer_to_server, Ta
 from chores.interceptors import ExceptionToStatusInterceptor
 from chores.models.chore import Chore, ChoreDistribution, Task
 from chores.users_server import _ONE_DAY_IN_SECONDS
-from chores.utils import distribution_needs_update, enum_mapper, get_intervals, get_server_credentials, parse_errors
+from chores.utils import distribution_needs_update, enum_mapper, get_intervals, get_server_credentials
 
 
 class TaskServer(TaskServicer):
-    def ValidateCreateChorePayload(self, request: CreateChorePayload, context: _Context) -> CreateChoreErrorsResponse:
-        try:
-            schema.CreateChorePayload(
-                name=request.name,
-                description=request.description,
-                cadence=request.cadence,
-                start_date=request.start_date,
-                end_date=request.end_date,
-            )
-        except ValidationError as e:
-            return CreateChoreErrorsResponse(**parse_errors(e))
-
-        return CreateChoreErrorsResponse()
-
     @inject
     def CreateChore(
         self, request: CreateChorePayload, context: _Context, database: Database = Provide[Container.database]

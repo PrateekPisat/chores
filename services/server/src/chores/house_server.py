@@ -6,7 +6,7 @@ import grpc
 from dependency_injector.wiring import inject, Provide
 from grpc._server import _Context
 from setuplog import log, setup_logging
-from sqlalchemy import delete
+from sqlalchemy import delete, func
 from sqlalchemy.exc import IntegrityError
 
 from chores.db import Database
@@ -22,8 +22,12 @@ from chores.grpc_generated.chores_pb2 import (
     GetMembersResponse,
     GetPayload,
     GetResponse,
+    HouseResponse,
+    ListHousePayload,
+    ListHousesResponse,
     RemoveMemberPayload,
     RemoveMemberResponse,
+    SearchHousePayload,
     UpdatePayload,
     UpdateResponse,
 )
@@ -45,6 +49,30 @@ class HouseServer(HouseServicer):
             postgres.commit()
 
             return CreateResponse(house_id=str(house.id))
+
+    @inject
+    def ListHouses(
+        self, request: ListHousePayload, context: _Context, database: Database = Provide[Container.database]
+    ) -> ListHousesResponse:
+        with database.session() as db:
+            query = db.query(House)
+            if request.user_id:
+                query = query.join(HouseMember).filter(HouseMember.user_id == request.user_id)
+
+            return ListHousesResponse(
+                houses=[HouseResponse(house_id=str(house.id), name=house.name) for house in query]
+            )
+
+    @inject
+    def SearchHouse(
+        self, request: SearchHousePayload, context: _Context, database: Database = Provide[Container.database]
+    ) -> ListHousesResponse:
+        with database.session() as db:
+            query = db.query(House).filter(func.lower(House.name).like(f"%{request.name.lower()}%"))
+
+            return ListHousesResponse(
+                houses=[HouseResponse(house_id=str(house.id), name=house.name) for house in query]
+            )
 
     @inject
     def Get(

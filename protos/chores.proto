@@ -24,6 +24,8 @@ service House{
     rpc Get(GetPayload) returns (GetResponse) {}
     rpc Update(UpdatePayload) returns (UpdateResponse) {}
     rpc Delete(DeletePayload) returns (DeleteResponse) {}
+    rpc ListHouses(ListHousePayload) returns (ListHousesResponse) {}
+    rpc SearchHouse(SearchHousePayload) returns (ListHousesResponse) {}
     rpc AddMembers(AddMembersPayload) returns (AddMemberResponse) {}
     rpc RemoveMember(RemoveMemberPayload) returns (RemoveMemberResponse) {}
     rpc GetMembers(GetPayload) returns (GetMembersResponse) {}
@@ -206,9 +208,25 @@ message GetPayload{
     string house_id = 1;
 }
 
+message ListHousePayload{
+    string user_id = 1;
+}
+
+message SearchHousePayload{
+    string name = 1;
+}
 message GetResponse{
     string house_id = 1;
     string name = 2;
+}
+
+message HouseResponse{
+    string house_id = 1;
+    string name = 2;
+}
+
+message ListHousesResponse{
+    repeated HouseResponse houses = 1;
 }
 
 message UpdatePayload{

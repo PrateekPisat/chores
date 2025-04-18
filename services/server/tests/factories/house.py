@@ -9,11 +9,11 @@ fake = Faker("az_AZ")
 
 class House:
     @staticmethod
-    def house(id: uuid.UUID | None = None, name: str | None = None) -> dict:
+    def house(id: uuid.UUID | None = None, name: str | None = None) -> models.House:
         return models.House(id=id or fake.uuid4(), name=name or fake.house_number())
 
     @staticmethod
-    def house_member(house_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None) -> dict:
+    def house_member(house_id: uuid.UUID | None = None, user_id: uuid.UUID | None = None) -> models.HouseMember:
         if not house_id:
             house = House.house()
             house_id = house.id

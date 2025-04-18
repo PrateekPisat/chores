@@ -6,14 +6,23 @@ from chores.grpc_generated.chores_pb2 import (
     DeleteResponse,
     GetMembersResponse,
     GetPayload,
+    ListHousePayload,
+    ListHousesResponse,
     RemoveMemberPayload,
     RemoveMemberResponse,
+    SearchHousePayload,
     UpdatePayload,
     UpdateResponse,
 )
 
 from chores_client.dependencies import HouseClientDep, TokenDep
-from chores_client.views.house.schema import House, HouseId, HouseMemberDetails, HouseMembers
+from chores_client.views.house.schema import (
+    House,
+    HouseId,
+    HouseMemberDetails,
+    HouseMembers,
+    HouseResponse,
+)
 from chores_client.views.user.schema import User
 
 
@@ -26,6 +35,20 @@ def create_house(payload: House, house_client: HouseClientDep, token: TokenDep) 
 
 def check_house_payload(payload: House) -> House:
     return House(**payload.model_dump())
+
+
+def list_houses(user_id: str, house_client: HouseClientDep, token: TokenDep) -> list[HouseResponse]:
+    response: ListHousesResponse = house_client.ListHouses(
+        ListHousePayload(user_id=user_id), metadata=[("authorization", f"Bearer {token}")]
+    )
+    return [HouseResponse(name=house.name, id=house.house_id) for house in response.houses]
+
+
+def search(payload: House, house_client: HouseClientDep, token: TokenDep) -> list[HouseResponse]:
+    response: ListHousesResponse = house_client.SearchHouse(
+        SearchHousePayload(name=payload.name), metadata=[("authorization", f"Bearer {token}")]
+    )
+    return [HouseResponse(name=house.name, id=house.house_id) for house in response.houses]
 
 
 def get_house(house_id: str, house_client: HouseClientDep, token: TokenDep) -> House:
