@@ -2,7 +2,7 @@
   <q-dialog :model-value="props.card" @hide="emit('close')">
     <q-card class="my-card">
       <div class="q-pa-md" style="max-width: 400px">
-        <q-form @submit="houseStore.createHouse()" class="q-gutter-md">
+        <q-form class="q-gutter-md">
           <div class="text-h6">Create A New House</div>
           <q-input
             filled
@@ -15,7 +15,13 @@
           />
 
           <div>
-            <q-btn label="Create House" type="submit" color="primary" />
+            <q-btn
+              label="Create House"
+              type="submit"
+              color="primary"
+              :disable="!!houseStore.getErrors('name')"
+              @click="createHouse()"
+            />
             <q-btn
               label="Close"
               type="reset"
@@ -38,7 +44,21 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  userId: {
+    type: String,
+    required: true,
+  },
 });
 const emit = defineEmits(['close']);
 const houseStore = userHouseStore();
+
+async function createHouse() {
+  await houseStore.createHouse().then(async (houseId: string) => {
+    await houseStore
+      .addMembers(houseId, [props.userId])
+      .then(async () => await houseStore.listUserHouses(props.userId));
+  });
+  houseStore.reset();
+  emit('close');
+}
 </script>
