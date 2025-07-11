@@ -23,6 +23,8 @@ from chores.grpc_generated.chores_pb2 import (
 )
 from chores.grpc_generated.chores_pb2_grpc import add_UsersServicer_to_server, UsersServicer
 from chores.interceptors import ExceptionToStatusInterceptor
+from chores.models.chore import Chore
+from chores.models.house import House, HouseMember
 from chores.models.user import User
 from chores.utils import get_server_credentials
 
@@ -85,7 +87,12 @@ class UsersServer(UsersServicer):
         self, request: SearchUserPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> SearchUserResponse:
         with database.session() as db:
-            users = db.query(User).filter(User.email.like(f"%{request.email}%")).all()
+            users = db.query(User)
+
+            if request.email:
+                users = users.filter(User.email.like(f"%{request.email}%"))
+            if request.chore_id:
+                users = users.join(HouseMember).join(House).join(Chore).filter(Chore.id == request.chore_id)
 
         return SearchUserResponse(
             users=[

@@ -51,7 +51,10 @@ class UpdateUserRequest(BaseModel):
 
 
 class SearchUserRequest(BaseModel):
-    email: str = Field(..., description="The email of the user", min_length=1)
+    email: str | None = Field(None, description="The email of the user")
+    chore_id: str | None = Field(
+        None, description="The ID of the chore to filter users by", alias="choreId"
+    )
 
 
 class SyncUserRequest(UpdateUserRequest): ...

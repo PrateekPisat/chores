@@ -43,6 +43,18 @@ user_routes = [
         "endpoint": views.house.list_houses,
         "tags": ["House"],
     },
+    {
+        "path": "/user/{user_id}/tasks",
+        "method": "GET",
+        "endpoint": views.task.list_tasks,
+        "tags": ["Task"],
+    },
+    {
+        "path": "/user/{user_id}/chores",
+        "method": "GET",
+        "endpoint": views.task.list_chores,
+        "tags": ["Chore"],
+    },
 ]
 
 house_routes = [

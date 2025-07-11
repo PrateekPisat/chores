@@ -29,7 +29,7 @@
             </q-item>
           </router-link>
 
-          <router-link :to="profileLink">
+          <router-link :to="taskLink">
             <q-item clickable v-close-popup>
               <q-item-section avatar>
                 <q-avatar
@@ -97,5 +97,9 @@ const profileLink = computed(() => {
 
 const houseLink = computed(() => {
   return { name: 'houses', params: { userId: props.user.userId } };
+});
+
+const taskLink = computed(() => {
+  return { name: 'tasks', params: { userId: props.user.userId } };
 });
 </script>

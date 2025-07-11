@@ -17,7 +17,7 @@
           <div>
             <q-btn
               label="Create House"
-              type="submit"
+              type="button"
               color="primary"
               :disable="!!houseStore.getErrors('name')"
               @click="createHouse()"
@@ -49,15 +49,13 @@ const props = defineProps({
     required: true,
   },
 });
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'update']);
 const houseStore = userHouseStore();
 
 async function createHouse() {
-  await houseStore.createHouse().then(async (houseId: string) => {
-    await houseStore
-      .addMembers(houseId, [props.userId])
-      .then(async () => await houseStore.listUserHouses(props.userId));
-  });
+  const houseId = await houseStore.createHouse();
+  await houseStore.addMembers(houseId, [props.userId]);
+  houseStore.listUserHouses(props.userId);
   houseStore.reset();
   emit('close');
 }

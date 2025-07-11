@@ -57,13 +57,15 @@ def delete_user(user_id: str, users_client: UsersClientDep) -> UserId:
 
 
 def search_user(payload: SearchUserRequest, users_client: UsersClientDep) -> list[User]:
-    response: SearchUserResponse = users_client.SearchUser(SearchUserPayload(email=payload.email))
+    response: SearchUserResponse = users_client.SearchUser(
+        SearchUserPayload(email=payload.email, chore_id=payload.chore_id)
+    )
     return [
         User(
-            user_id=user.userId,
+            user_id=user.user_id,
             email=user.email,
-            firstName=user.firstName,
-            lastName=user.lastName,
+            firstName=user.first_name,
+            lastName=user.last_name,
             sub=user.sub,
             picture=user.picture,
             nickname=user.nickname,

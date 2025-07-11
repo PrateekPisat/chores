@@ -31,6 +31,10 @@ from chores.grpc_generated.chores_pb2 import (
     GetDistributionResponse,
     GetTaskPayload,
     GetTaskResponse,
+    ListChorePayload,
+    ListChoreResponse,
+    ListTaskPayload,
+    ListTaskResponse,
     UpdateChorePayload,
     UpdateChoreResponse,
     UpdateDistributionPayload,
@@ -47,6 +51,7 @@ from chores.grpc_generated.chores_pb2 import (
 from chores.grpc_generated.chores_pb2_grpc import add_TaskServicer_to_server, TaskServicer
 from chores.interceptors import ExceptionToStatusInterceptor
 from chores.models.chore import Chore, ChoreDistribution, Task
+from chores.models.house import House, HouseMember
 from chores.users_server import _ONE_DAY_IN_SECONDS
 from chores.utils import distribution_needs_update, enum_mapper, get_intervals, get_server_credentials
 
@@ -63,6 +68,7 @@ class TaskServer(TaskServicer):
             cadence=enum_map[request.cadence],
             start_date=request.start_date,
             end_date=request.end_date,
+            house_id=uuid.UUID(request.house_id),
         )
 
         with database.session() as postgres:
@@ -70,6 +76,34 @@ class TaskServer(TaskServicer):
             postgres.commit()
 
             return CreateChoreResponse(id=str(chore.id))
+
+    @inject
+    def ListChores(
+        self, request: ListChorePayload, context: _Context, database: Database = Provide[Container.database]
+    ) -> ListChoreResponse:
+        with database.session() as db:
+            query = db.query(Chore)
+
+            if request.house_id:
+                query = query.filter(Chore.house_id == uuid.UUID(request.house_id))
+
+            if request.user_id:
+                query = query.join(House).join(HouseMember).filter(HouseMember.user_id == uuid.UUID(request.user_id))
+
+        return ListChoreResponse(
+            chores=[
+                GetChoreResponse(
+                    id=str(chore.id),
+                    name=chore.name,
+                    description=chore.description,
+                    cadence=chore.cadence,
+                    start_date=chore.start_date.isoformat(),
+                    end_date=chore.end_date.isoformat(),
+                    house_id=str(chore.house_id),
+                )
+                for chore in query
+            ]
+        )
 
     @inject
     def GetChore(
@@ -110,6 +144,7 @@ class TaskServer(TaskServicer):
             chore.cadence = enum_map[request.cadence]
             chore.start_date = request.start_date
             chore.end_date = request.end_date
+            chore.house_id = uuid.UUID(request.house_id)
             db.add(chore)
             db.commit()
 
@@ -240,6 +275,51 @@ class TaskServer(TaskServicer):
             db.commit()
 
             return DeleteDistributionResponse(id=request.id)
+
+    def ListTasks(
+        self, request: ListTaskPayload, context: _Context, database: Database = Provide[Container.database]
+    ) -> ListTaskResponse:
+        with database.session() as db:
+            tasks = (
+                db.query(Task)
+                .join(ChoreDistribution)
+                .options(
+                    selectinload(Task.chore_distribution).selectinload(ChoreDistribution.user),
+                    selectinload(Task.chore_distribution).selectinload(ChoreDistribution.chore),
+                )
+                .filter(ChoreDistribution.user_id == uuid.UUID(request.user_id))
+                .filter(Task.completed_at.is_(None))
+                .order_by(Task.due_date)
+            )
+
+            return ListTaskResponse(
+                tasks=[
+                    GetTaskResponse(
+                        id=str(task.id),
+                        due_date=task.due_date.isoformat() if task.due_date else None,
+                        completed_at=task.completed_at.isoformat() if task.completed_at else None,
+                        chore=ChorePayload(
+                            id=str(task.chore_distribution.chore.id),
+                            name=task.chore_distribution.chore.name,
+                            description=task.chore_distribution.chore.description,
+                            cadence=task.chore_distribution.chore.cadence,
+                            start_date=task.chore_distribution.chore.start_date.isoformat(),
+                            end_date=task.chore_distribution.chore.end_date.isoformat(),
+                            house_id=str(task.chore_distribution.chore.house_id),
+                        ),
+                        user=UserPayload(
+                            id=str(task.chore_distribution.user.id),
+                            email=task.chore_distribution.user.email,
+                            first_name=task.chore_distribution.user.first_name,
+                            last_name=task.chore_distribution.user.last_name,
+                            sub=task.chore_distribution.user.sub,
+                            picture=task.chore_distribution.user.picture,
+                            nickname=task.chore_distribution.user.nickname,
+                        ),
+                    )
+                    for task in tasks
+                ]
+            )
 
     def GetTask(
         self, request: GetTaskPayload, context: _Context, database: Database = Provide[Container.database]

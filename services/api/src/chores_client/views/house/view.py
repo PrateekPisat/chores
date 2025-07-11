@@ -111,6 +111,9 @@ def get_members(house_id: str, house_client: HouseClientDep, token: TokenDep) ->
                 email=user.email,
                 first_name=user.first_name,
                 last_name=user.last_name,
+                sub=user.sub,
+                picture=user.picture,
+                nickname=user.nickname,
             )
             for user in response.users
         ],

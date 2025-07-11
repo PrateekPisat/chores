@@ -3,6 +3,7 @@ import { join } from 'lodash';
 import { defineStore } from 'pinia';
 import { api } from 'src/boot/axios';
 import { handleError } from 'src/utils';
+import { AppUser } from './userStore';
 
 export interface House {
   id: string;
@@ -37,7 +38,7 @@ export const userHouseStore = defineStore('house', {
     },
     async listUserHouses(userId: string) {
       this.loading = true;
-      api.get(`/user/${userId}/houses`, this.config)
+      return api.get(`/user/${userId}/houses`, this.config)
         .then((response) => { this.houses = response.data; })
         .catch((error) => {
           console.error('Failed to fetch tasks:', error);
@@ -47,7 +48,13 @@ export const userHouseStore = defineStore('house', {
     },
     async checkCreate() {
       this.loading = true;
-      api.post('/house/houseValidate', this.createHouseForm, this.config).then(() => { this.errors = null })
+      return api.post('/house/houseValidate', this.createHouseForm, this.config).then(() => { this.errors = null })
+        .catch((err) => { this.errors = handleError(err) })
+        .finally(() => { this.loading = false })
+    },
+    async checkValidate(name: string) {
+      this.loading = true;
+      return api.post('/house/houseValidate', { name }, this.config).then(() => { this.errors = null })
         .catch((err) => { this.errors = handleError(err) })
         .finally(() => { this.loading = false })
     },
@@ -63,15 +70,73 @@ export const userHouseStore = defineStore('house', {
         }).
         finally(() => { this.loading = false });
     },
+    async getHouse(houseId: string): Promise<House> {
+      this.loading = true;
+      return api.get(`/house/${houseId}`, this.config)
+        .then((response) => {
+          return response.data;
+        })
+        .catch((error) => {
+          console.error('Failed to fetch house:', error);
+          this.errors = new Map([['fetchHouse', ['Failed to fetch house']]]);
+        })
+        .finally(() => { this.loading = false });
+    },
+    async editHouse(houseId: string, name: string | null) {
+      this.loading = true;
+      return api.put(`/house/${houseId}`, { name }, this.config)
+        .then(() => { this.errors = null })
+        .catch((error) => {
+          console.error('Failed to edit house:', error);
+          this.errors = new Map([['editHouse', ['Failed to edit house']]]);
+        })
+        .finally(() => { this.loading = false });
+    },
+    async deleteHouse(houseId: string) {
+      this.loading = true;
+      return api.delete(`/house/${houseId}`, this.config)
+        .then(() => { this.errors = null })
+        .catch((error) => {
+          console.error('Failed to delete house:', error);
+          this.errors = new Map([['deleteHouse', ['Failed to delete house']]]);
+        })
+        .finally(() => { this.loading = false });
+    },
     async addMembers(houseId: string, members: string[]) {
       this.loading = true;
-      api.post('/house/member', { houseId, userIds: members }, this.config)
+      return api.post('/house/member', { houseId, userIds: members }, this.config)
         .then()
         .catch((error) => {
           console.error('Failed to add members:', error);
           this.errors = new Map([['addMembers', ['Failed to add members']]]);
         })
         .finally(() => { this.loading = false });
+    },
+    async deleteMember(houseId: string, userId: string) {
+      this.loading = true;
+      try {
+        await api.delete(`/house/${houseId}/member/${userId}`, this.config);
+        this.errors = null;
+      }
+      catch (error) {
+        console.error('Failed to delete member:', error);
+        this.errors = new Map([['deleteMember', ['Failed to delete member']]]);
+      } finally {
+        this.loading = false;
+      }
+    },
+    async getMembers(houseId: string): Promise<AppUser[]> {
+      this.loading = true;
+      try {
+        const response = await api.get(`/house/${houseId}/member`, this.config);
+        return response.data?.users as AppUser[];
+      } catch (error) {
+        console.error('Failed to fetch members:', error);
+        this.errors = new Map([['fetchMembers', ['Failed to fetch members']]]);
+        return [];
+      } finally {
+        this.loading = false;
+      }
     },
     getErrors(key: string): string {
       if (this.errors) {

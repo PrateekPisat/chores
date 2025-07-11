@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from datetime import date, datetime
 
@@ -6,6 +8,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from chores.models.base import Base
+from chores.models.house import House
 
 
 class Chore(Base):
@@ -13,13 +16,19 @@ class Chore(Base):
     __table_args__ = {"schema": "chores"}
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    house_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("chores.house.id", ondelete="CASCADE"), nullable=False
+    )
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
     cadence: Mapped[str] = mapped_column(String, nullable=False)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
 
-    distributions = relationship("ChoreDistribution", uselist=True, back_populates="chore")
+    distributions: Mapped[list[ChoreDistribution]] = relationship(
+        "ChoreDistribution", uselist=True, back_populates="chore"
+    )
+    house: Mapped[House] = relationship("House", back_populates="chores")
 
 
 class ChoreDistribution(Base):

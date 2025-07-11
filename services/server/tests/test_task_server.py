@@ -13,6 +13,8 @@ from chores.grpc_generated.chores_pb2 import (
     GetDistributionPayload,
     GetDistributionResponse,
     GetTaskPayload,
+    ListChorePayload,
+    ListTaskPayload,
     UpdateChorePayload,
     UpdateDistributionPayload,
     UpdateTaskPayload,
@@ -28,6 +30,7 @@ from tests.factories.base import ModelFactory
 class Test_Chores:
     def test_it_creates_a_chore(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
+        house = mf.house.house()
         now = pendulum.now()
 
         token = get_token_payload(user, config.cryptography.secret_key)
@@ -37,6 +40,7 @@ class Test_Chores:
             cadence=Cadence.DAILY,
             start_date=now.date().isoformat(),
             end_date=now.add(days=7).date().isoformat(),
+            house_id=str(house.id),  # Ensure we have a house for the chore
         )
 
         response = task_service.CreateChore(request, metadata=(("authorization", f"Bearer {token}"),))
@@ -48,6 +52,43 @@ class Test_Chores:
         assert chore.description == request.description
         assert chore.cadence == "DAILY"
         assert chore.start_date
+
+    def test_it_lists_chores(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
+        house = mf.house.house()
+        chore = mf.chore.chore(house=house)
+        mf.chore.chore()  # Create another chore to ensure we have multiple
+        token = get_token_payload(user, config.cryptography.secret_key)
+        request = ListChorePayload(house_id=str(house.id))
+
+        response = task_service.ListChores(request, metadata=(("authorization", f"Bearer {token}"),))
+
+        assert len(response.chores) == 1
+        for c in response.chores:
+            assert c.id == str(chore.id)
+            assert c.name == chore.name
+            assert c.description == chore.description
+            assert c.cadence == Cadence.Value(chore.cadence)
+            assert c.start_date == chore.start_date.isoformat()
+            assert c.end_date == chore.end_date.isoformat()
+            assert c.house_id == str(house.id)
+
+    def test_it_lists_user_chores(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
+        house1 = mf.house.house()
+        house2 = mf.house.house()
+        chore1 = mf.chore.chore(house=house1)
+        chore2 = mf.chore.chore(house=house2)
+        mf.chore.chore()  # Create another chore to ensure we have multiple
+        mf.house.house_member(house_id=house1.id, user_id=user.id)
+        mf.house.house_member(house_id=house2.id, user_id=user.id)
+        token = get_token_payload(user, config.cryptography.secret_key)
+        request = ListChorePayload(user_id=str(user.id))
+
+        response = task_service.ListChores(request, metadata=(("authorization", f"Bearer {token}"),))
+
+        assert len(response.chores) == 2
+        assert {str(c.id) for c in response.chores} == {str(chore1.id), str(chore2.id)}
 
     def test_it_gets_a_chore(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
@@ -79,7 +120,8 @@ class Test_Chores:
 
     def test_it_updates_a_chore(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
-        chore = mf.chore.chore()
+        house = mf.house.house()
+        chore = mf.chore.chore(house=house)
         token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateChorePayload(
             id=str(chore.id),
@@ -88,6 +130,7 @@ class Test_Chores:
             cadence=Cadence.WEEKLY,
             start_date=pendulum.now().date().isoformat(),
             end_date=pendulum.now().add(days=7).date().isoformat(),
+            house_id=str(house.id),  # Ensure we have a house for the chore
         )
 
         response = task_service.UpdateChore(request, metadata=(("authorization", f"Bearer {token}"),))
@@ -107,7 +150,8 @@ class Test_Chores:
     ):
         now = pendulum.now()
         user = mf.user.user(email="test@example.com")
-        chore = mf.chore.chore(cadence="DAILY", start_date=now.date(), end_date=now.add(days=7).date())
+        house = mf.house.house()
+        chore = mf.chore.chore(house=house, cadence="DAILY", start_date=now.date(), end_date=now.add(days=7).date())
         user = mf.user.user()
         mf.chore.distribution(chore=chore, user=user)
 
@@ -119,6 +163,7 @@ class Test_Chores:
             cadence=Cadence.WEEKLY,
             start_date=pendulum.now().date().isoformat(),
             end_date=pendulum.now().add(weeks=2).date().isoformat(),
+            house_id=str(house.id),  # Ensure we have a house for the chore
         )
         response = task_service.UpdateChore(request, metadata=(("authorization", f"Bearer {token}"),))
 
@@ -146,6 +191,7 @@ class Test_Chores:
 
     def test_it_raises_on_missing_chore_for_update(self, task_service: TaskStub, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
+        house = mf.house.house()
         token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateChorePayload(
             id=str(uuid.uuid4()),
@@ -153,6 +199,7 @@ class Test_Chores:
             description="Chore 2 description",
             cadence=Cadence.WEEKLY,
             start_date=pendulum.now().date().isoformat(),
+            house_id=str(house.id),  # Ensure we have a house for the chore
         )
 
         with pytest.raises(grpc._channel._InactiveRpcError) as e:
@@ -344,13 +391,41 @@ class Test_ChoreDistribution:
 
 
 class Test_Task:
-    def test_it_gets_a_task(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
+    def test_it_lists_tasks(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
         now = pendulum.now()
         chore = mf.chore.chore(cadence="DAILY", start_date=now.date(), end_date=now.add(days=1).date())
         user = mf.user.user()
         distribution = mf.chore.distribution(chore=chore, user=user)
         task = mf.chore.task(chore_distribution=distribution)
+
+        token = get_token_payload(user, config.cryptography.secret_key)
+        request = ListTaskPayload(user_id=str(user.id))
+        response = task_service.ListTasks(request, metadata=(("authorization", f"Bearer {token}"),))
+
+        assert len(response.tasks) == 1
+        for t in response.tasks:
+            assert t.id == str(task.id)
+            assert t.due_date == task.due_date.isoformat()
+            assert not t.completed_at
+            assert t.user.id == str(user.id)
+            assert t.user.email == user.email
+            assert t.user.first_name == user.first_name
+            assert t.user.last_name == user.last_name
+            assert t.chore.id == str(chore.id)
+            assert t.chore.name == chore.name
+            assert t.chore.description == chore.description
+            assert t.chore.cadence == 0
+            assert t.chore.start_date == chore.start_date.isoformat()
+            assert t.chore.end_date == chore.end_date.isoformat()
+
+    def test_it_gets_a_task(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
+        user = mf.user.user(email="test@example.com")
+        now = pendulum.now()
+        chore = mf.chore.chore(cadence="DAILY", start_date=now.date(), end_date=now.add(days=1).date())
+        user = mf.user.user()
+        distribution = mf.chore.distribution(chore=chore, user=user)
+        task = mf.chore.task(chore_distribution=distribution, completed_at=now)
 
         token = get_token_payload(user, config.cryptography.secret_key)
         request = GetTaskPayload(id=str(task.id))

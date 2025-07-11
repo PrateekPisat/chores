@@ -15,6 +15,10 @@ from chores.grpc_generated.chores_pb2 import (
     GetDistributionResponse,
     GetTaskPayload,
     GetTaskResponse,
+    ListChorePayload,
+    ListChoreResponse,
+    ListTaskPayload,
+    ListTaskResponse,
     UpdateChorePayload,
     UpdateChoreResponse,
     UpdateDistributionPayload,
@@ -67,6 +71,24 @@ def get_chore(chore_id: str, task_client: TaskClientDep, token: TokenDep) -> Cho
         start_date=response.start_date,
         end_date=response.end_date,
     )
+
+
+def list_chores(user_id: str, task_client: TaskClientDep, token: TokenDep):
+    response: ListChoreResponse = task_client.ListChores(
+        ListChorePayload(user_id=user_id), metadata=[("authorization", f"Bearer {token}")]
+    )
+    return [
+        Chore(
+            id=chore.id,
+            name=chore.name,
+            description=chore.description,
+            cadence=ENUM_MAP[chore.cadence],
+            start_date=chore.start_date,
+            end_date=chore.end_date,
+            houseId=chore.house_id,
+        )
+        for chore in response.chores
+    ]
 
 
 def update_chore(
@@ -142,6 +164,38 @@ def delete_distribution(chore_id: str, task_client: TaskClientDep, token: TokenD
         DeleteDistributionPayload(id=chore_id), metadata=[("authorization", f"Bearer {token}")]
     )
     return ChoreId(id=response.id)
+
+
+def list_tasks(user_id: str, task_client: TaskClientDep, token: TokenDep):
+    response: ListTaskResponse = task_client.ListTasks(
+        ListTaskPayload(user_id=user_id), metadata=[("authorization", f"Bearer {token}")]
+    )
+    return [
+        Task(
+            id=task.id,
+            dueDate=task.due_date if task.due_date else None,
+            completedAt=task.completed_at if task.completed_at else None,
+            chore=Chore(
+                id=task.chore.id,
+                name=task.chore.name,
+                description=task.chore.description,
+                cadence=ENUM_MAP[task.chore.cadence],
+                start_date=task.chore.start_date,
+                end_date=task.chore.end_date,
+                houseId=task.chore.house_id,
+            ),
+            user=User(
+                user_id=task.user.id,
+                email=task.user.email,
+                first_name=task.user.first_name,
+                last_name=task.user.last_name,
+                sub=task.user.sub,
+                picture=task.user.picture,
+                nickname=task.user.nickname,
+            ),
+        )
+        for task in response.tasks
+    ]
 
 
 def get_task(task_id: str, task_client: TaskClientDep, token: TokenDep) -> Task:

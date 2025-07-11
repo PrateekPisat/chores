@@ -112,6 +112,8 @@ class HouseServer(HouseServicer):
             if not house:
                 raise NotFound("House not found!")
 
+            for member in house.members:
+                db.delete(member)
             db.delete(house)
             db.commit()
 

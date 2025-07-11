@@ -116,7 +116,7 @@ def user_service(
 ):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=interceptors)
     add_UsersServicer_to_server(UsersServer(), server)
-    port = server.add_secure_port("[::]:50051", server_credentials)
+    port = server.add_secure_port("[::]:50055", server_credentials)
     server.start()
 
     try:
@@ -135,7 +135,7 @@ def house_service(
 ):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=interceptors)
     add_HouseServicer_to_server(HouseServer(), server)
-    port = server.add_secure_port("[::]:50051", server_credentials)
+    port = server.add_secure_port("[::]:50055", server_credentials)
     server.start()
 
     try:
@@ -154,7 +154,7 @@ def task_service(
 ):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=interceptors)
     add_TaskServicer_to_server(TaskServer(), server)
-    port = server.add_secure_port("[::]:50051", server_credentials)
+    port = server.add_secure_port("[::]:50055", server_credentials)
     server.start()
 
     try:

@@ -109,6 +109,7 @@ class Test_HouseServer:
     def test_it_deletes_a_house(self, house_service: HouseStub, db: Session, mf: ModelFactory, config: Config):
         user = mf.user.user(email="test@example.com")
         house = mf.house.house()
+        mf.house.house_member(house_id=house.id, user_id=user.id)
         request = DeletePayload(house_id=str(house.id))
 
         token = get_token_payload(user, config.cryptography.secret_key)
@@ -116,8 +117,10 @@ class Test_HouseServer:
         assert response.house_id == str(house.id)
 
         db.expunge_all()
+        members = db.query(HouseMember).filter(HouseMember.house_id == house.id).all()
         house = db.query(House).filter(House.id == house.id).one_or_none()
         assert house is None
+        assert len(members) == 0
 
     def test_it_deletes_house_not_found(self, house_service: HouseStub, mf: ModelFactory, config: Config):
         user = mf.user.user(email="test@example.com")

@@ -31,6 +31,7 @@ class ChoreDetails(BaseModel):
     cadence: Literal["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]
     start_date: str = Field(..., min_length=1, alias="startDate")
     end_date: str = Field(..., min_length=1, alias="endDate")
+    house_id: str = Field(..., min_length=1, alias="houseId")
 
     @field_validator("start_date", "end_date", mode="after", check_fields=True)
     @classmethod
@@ -57,6 +58,7 @@ class ChoreDetails(BaseModel):
             cadence=ENUM_MAP[self.cadence],
             start_date=self.start_date,
             end_date=self.end_date,
+            house_id=self.house_id,
         )
 
 

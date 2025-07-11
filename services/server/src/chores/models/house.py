@@ -17,6 +17,7 @@ class House(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
 
     members: Mapped[list[HouseMember]] = relationship("HouseMember", back_populates="house")
+    chores = relationship("Chore", back_populates="house")
 
 
 class HouseMember(Base):

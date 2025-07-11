@@ -129,6 +129,19 @@ class Test_UsersServer:
         assert response.users[0].picture == user.picture
         assert response.users[0].nickname == user.nickname
 
+    def test_search_user_chore_id(self, user_service: UsersStub, mf: ModelFactory, config: Config):
+        user = mf.user.user()
+        house = mf.house.house()
+        chore = mf.chore.chore(house=house)
+        mf.house.house_member(house_id=house.id, user_id=user.id)
+        request = SearchUserPayload(chore_id=str(chore.id))
+
+        token = get_token_payload(user, config.cryptography.secret_key)
+        response: SearchUserResponse = user_service.SearchUser(request, metadata=[("authorization", f"Bearer {token}")])
+
+        assert len(response.users) == 1
+        assert response.users[0].user_id == str(user.id)
+
     @pytest.mark.parametrize("query", ["test1", "email", "@email", "1test", "random_name"])
     def test_search_user_no_match(self, user_service: UsersStub, mf: ModelFactory, config: Config, query: str):
         user = mf.user.user(email="test@example.com")

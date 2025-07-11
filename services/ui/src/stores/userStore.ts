@@ -2,8 +2,9 @@
 import { defineStore } from 'pinia'
 import { join } from 'lodash';
 import { Auth0VueClient, useAuth0, User } from '@auth0/auth0-vue';
-import { api } from 'src/boot/axios';
+import { api, ValidationError } from 'src/boot/axios';
 import { handleError } from 'src/utils';
+import { AxiosError } from 'axios';
 
 export interface AppUser {
   userId: string;
@@ -49,6 +50,13 @@ export const userUserStore = defineStore('user', {
       }
       return ''
     },
+    config: () => {
+      return {
+        headers: {
+          Authorization: 'Bearer FakeToken',
+        },
+      }
+    }
   },
   actions: {
     reset() {
@@ -111,6 +119,22 @@ export const userUserStore = defineStore('user', {
       api.delete('/user/' + this.appUser.userId).then(() => { this.auth0.logout() })
         .catch((err) => { this.errors = handleError(err) })
         .finally(() => { this.loading = false })
+    },
+    async searchUser(email: string | null, choreId: string | null = null): Promise<AppUser[]> {
+      this.loading = true;
+      try {
+        const response = await api.post('/user/search', { email, choreId }, this.config);
+        this.reset();
+        return response.data as AppUser[];
+      }
+      catch (error) {
+        console.error('Failed to search user:', error);
+        this.errors = handleError(error as AxiosError | ValidationError);
+        return [];
+      } finally {
+        this.loading = false;
+      }
+
     },
     getErrors(key: string): string {
       if (this.errors) {

@@ -26,7 +26,14 @@ const routes: RouteRecordRaw[] = [
         name: 'houses',
         beforeEnter: authGuard,
         props: true,
-      }
+      },
+      {
+        path: 'tasks/:userId',
+        component: () => import('pages/TaskPage.vue'),
+        name: 'tasks',
+        beforeEnter: authGuard,
+        props: true,
+      },
     ],
   },
 
