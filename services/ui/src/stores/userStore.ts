@@ -1,7 +1,6 @@
-
 import { defineStore } from 'pinia'
 import { join } from 'lodash';
-import { Auth0VueClient, useAuth0, User } from '@auth0/auth0-vue';
+import { Auth0VueClient, User } from '@auth0/auth0-vue';
 import { api, ValidationError } from 'src/boot/axios';
 import { handleError } from 'src/utils';
 import { AxiosError } from 'axios';
@@ -21,22 +20,12 @@ export const userUserStore = defineStore('user', {
     return {
       errors: null as Map<string, string[]> | null,
       loading: false,
-      auth0: useAuth0() as Auth0VueClient,
       appUser: {} as AppUser,
     }
   },
   getters: {
-    isAuthenticated(): boolean {
-      return this.auth0.isAuthenticated
-    },
-    auth0User(): User | undefined {
-      return this.auth0.user
-    },
     user(): AppUser {
       return this.appUser
-    },
-    isVerified(): boolean {
-      return this.auth0User?.email_verified || false
     },
     userName(): string {
       if (this.appUser.firstName && this.appUser.lastName) {
@@ -50,13 +39,6 @@ export const userUserStore = defineStore('user', {
       }
       return ''
     },
-    config: () => {
-      return {
-        headers: {
-          Authorization: 'Bearer FakeToken',
-        },
-      }
-    }
   },
   actions: {
     reset() {
@@ -70,71 +52,93 @@ export const userUserStore = defineStore('user', {
         sub: this.appUser.sub,
       }
     },
-    syncUser() {
-      this.loading = true
-      api.post('/user/sync', {
-        email: this.auth0User?.email,
-        firstName: this.auth0User?.given_name || this.auth0User?.nickname,
-        lastName: this.auth0User?.family_name || this.auth0User?.nickname,
-        picture: this.auth0User?.picture,
-        nickname: this.auth0User?.nickname,
-        sub: this.auth0User?.sub,
-      }).then((response) => { this.appUser = response.data })
-        .catch((err) => { this.errors = handleError(err) })
-        .finally(() => { this.loading = false })
+    async syncUser(auth0User: User | undefined) {
+      this.loading = true;
+      try {
+        const response = await api.post('/user/sync', {
+          email: auth0User?.email,
+          firstName: auth0User?.given_name || auth0User?.nickname,
+          lastName: auth0User?.family_name || auth0User?.nickname,
+          picture: auth0User?.picture,
+          nickname: auth0User?.nickname,
+          sub: auth0User?.sub,
+        });
+        this.appUser = response.data;
+      } catch (err) {
+        this.errors = handleError(err as AxiosError | ValidationError);
+      } finally {
+        this.loading = false;
+      }
     },
-    getUser(userId: string) {
-      this.loading = true
-      api.get('/user/' + userId).then((response) => { this.appUser = response.data })
-        .catch((err) => { this.errors = handleError(err) })
-        .finally(() => { this.loading = false })
+    async getUser(userId: string) {
+      this.loading = true;
+      try {
+        const response = await api.get('/user/' + userId);
+        this.appUser = response.data;
+      } catch (err) {
+        this.errors = handleError(err as AxiosError | ValidationError);
+      } finally {
+        this.loading = false;
+      }
     },
-    checkUpdate(firstName: string | number | null, lastName: string | number | null) {
-      this.loading = true
-      api.post('/user/updateValidate', {
-        firstName: firstName,
-        lastName: lastName,
-        ...this.defaultUserArgs()
-      })
-        .then(() => { this.errors = null })
-        .catch((err) => { this.errors = handleError(err) })
-        .finally(() => { this.loading = false })
+    async checkUpdate(firstName: string | number | null, lastName: string | number | null) {
+      this.loading = true;
+      try {
+        await api.post('/user/updateValidate', {
+          firstName: firstName,
+          lastName: lastName,
+          ...this.defaultUserArgs()
+        });
+        this.errors = null;
+      } catch (err) {
+        this.errors = handleError(err as AxiosError | ValidationError);
+      } finally {
+        this.loading = false;
+      }
     },
-    updateUser(firstName: string | number | null, lastName: string | number | null) {
-      this.loading = true
-      api.put('/user/' + this.appUser.userId, {
-        first_name: firstName,
-        last_name: lastName,
-        ...this.defaultUserArgs()
-      }).then((response) => { this.getUser(response.data.userId) })
-        .catch((err) => { this.errors = handleError(err) })
-        .finally(() => { this.loading = false })
+    async updateUser(firstName: string | number | null, lastName: string | number | null) {
+      this.loading = true;
+      try {
+        const response = await api.put('/user/' + this.appUser.userId, {
+          first_name: firstName,
+          last_name: lastName,
+          ...this.defaultUserArgs()
+        });
+        await this.getUser(response.data.userId);
+      } catch (err) {
+        this.errors = handleError(err as AxiosError | ValidationError);
+      } finally {
+        this.loading = false;
+      }
     },
-    deleteUser() {
+    async deleteUser(auth0Client: Auth0VueClient) {
       if (!this.appUser.userId) {
         console.error('No userId found in appUser')
       }
 
-      this.loading = true
-      api.delete('/user/' + this.appUser.userId).then(() => { this.auth0.logout() })
-        .catch((err) => { this.errors = handleError(err) })
-        .finally(() => { this.loading = false })
+      this.loading = true;
+      try {
+        await api.delete('/user/' + this.appUser.userId);
+        auth0Client.logout();
+      } catch (err) {
+        this.errors = handleError(err as AxiosError | ValidationError);
+      } finally {
+        this.loading = false;
+      }
     },
     async searchUser(email: string | null, choreId: string | null = null): Promise<AppUser[]> {
       this.loading = true;
       try {
-        const response = await api.post('/user/search', { email, choreId }, this.config);
+        const response = await api.post('/user/search', { email, choreId });
         this.reset();
         return response.data as AppUser[];
-      }
-      catch (error) {
+      } catch (error) {
         console.error('Failed to search user:', error);
         this.errors = handleError(error as AxiosError | ValidationError);
         return [];
       } finally {
         this.loading = false;
       }
-
     },
     getErrors(key: string): string {
       if (this.errors) {

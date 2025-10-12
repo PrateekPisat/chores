@@ -11,7 +11,7 @@ from chores.grpc_generated.chores_pb2 import (
     UpdateUserResponse,
 )
 
-from chores_client.dependencies import UsersClientDep
+from chores_client.dependencies import TokenDep, UsersClientDep
 from chores_client.views.user.schema import (
     SearchUserRequest,
     SyncUserRequest,
@@ -21,8 +21,11 @@ from chores_client.views.user.schema import (
 )
 
 
-def get_user(user_id: str, users_client: UsersClientDep) -> User:
-    user: GetUserResponse = users_client.GetUser(GetUserPayload(user_id=user_id))
+def get_user(user_id: str, users_client: UsersClientDep, token: TokenDep) -> User:
+    user: GetUserResponse = users_client.GetUser(
+        GetUserPayload(user_id=user_id),
+        metadata=[("authorization", f"Bearer {token}")],
+    )
 
     return User(
         userId=user.user_id,
@@ -39,26 +42,35 @@ def check_update_payload(payload: UpdateUserRequest) -> UpdateUserRequest:
     return UpdateUserRequest(**payload.model_dump(by_alias=True))
 
 
-def update_user(user_id: str, payload: UpdateUserRequest, users_client: UsersClientDep) -> UserId:
+def update_user(
+    user_id: str, payload: UpdateUserRequest, users_client: UsersClientDep, token: TokenDep
+) -> UserId:
     user: UpdateUserResponse = users_client.UpdateUser(
         UpdateUserPayload(
             user_id=user_id,
             email=payload.email,
             first_name=payload.first_name,
             last_name=payload.last_name,
-        )
+        ),
+        metadata=[("authorization", f"Bearer {token}")],
     )
     return UserId(userId=user.user_id)
 
 
-def delete_user(user_id: str, users_client: UsersClientDep) -> UserId:
-    user: DeleteUserResponse = users_client.DeleteUser(DeleteUserPayload(user_id=user_id))
+def delete_user(user_id: str, users_client: UsersClientDep, token: TokenDep) -> UserId:
+    user: DeleteUserResponse = users_client.DeleteUser(
+        DeleteUserPayload(user_id=user_id),
+        metadata=[("authorization", f"Bearer {token}")],
+    )
     return UserId(userId=user.user_id)
 
 
-def search_user(payload: SearchUserRequest, users_client: UsersClientDep) -> list[User]:
+def search_user(
+    payload: SearchUserRequest, users_client: UsersClientDep, token: TokenDep
+) -> list[User]:
     response: SearchUserResponse = users_client.SearchUser(
-        SearchUserPayload(email=payload.email, chore_id=payload.chore_id)
+        SearchUserPayload(email=payload.email, chore_id=payload.chore_id),
+        metadata=[("authorization", f"Bearer {token}")],
     )
     return [
         User(
@@ -74,8 +86,10 @@ def search_user(payload: SearchUserRequest, users_client: UsersClientDep) -> lis
     ]
 
 
-def sync_user(payload: SyncUserRequest, users_client: UsersClientDep) -> User:
-    response: SyncUserResponse = users_client.SyncUser(SyncUserPayload(**payload.model_dump()))
+def sync_user(payload: SyncUserRequest, users_client: UsersClientDep, token: TokenDep) -> User:
+    response: SyncUserResponse = users_client.SyncUser(
+        SyncUserPayload(**payload.model_dump()), metadata=[("authorization", f"Bearer {token}")]
+    )
     return User(
         user_id=response.user.id,
         email=response.user.email,

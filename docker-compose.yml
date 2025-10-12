@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres
+    image: postgres:15-alpine
     ports:
       - "5432:5432"
     environment:
@@ -27,6 +27,9 @@ services:
       SECRET_KEY: "${SECRET_KEY}"
       CERTS_PATH: "/service/certs/task_service"
       HOSTNAME: "task_service"
+      AUTH0_DOMAIN: "${AUTH0_DOMAIN}"
+      AUTH0_CLIENT_ID: "${AUTH0_CLIENT_ID}"
+      AUTH0_AUDIENCE: "${AUTH0_AUDIENCE}"
     depends_on:
       - postgres
     
@@ -47,6 +50,9 @@ services:
       SECRET_KEY: "${SECRET_KEY}"
       CERTS_PATH: "/service/certs/users_service"
       HOSTNAME: "users_service"
+      AUTH0_DOMAIN: "${AUTH0_DOMAIN}"
+      AUTH0_CLIENT_ID: "${AUTH0_CLIENT_ID}"
+      AUTH0_AUDIENCE: "${AUTH0_AUDIENCE}"
     depends_on:
       - postgres
   
@@ -67,6 +73,9 @@ services:
       SECRET_KEY: "${SECRET_KEY}"
       CERTS_PATH: "/service/certs/house_service"
       HOSTNAME: "house_service"
+      AUTH0_DOMAIN: "${AUTH0_DOMAIN}"
+      AUTH0_CLIENT_ID: "${AUTH0_CLIENT_ID}"
+      AUTH0_AUDIENCE: "${AUTH0_AUDIENCE}"
     depends_on:
       - postgres
   
@@ -94,6 +103,25 @@ services:
       - task_service
       - users_service
       - house_service
+
+  ui:
+    build:
+      context: ./services/ui
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./services/ui:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      VITE_API_BASE_URL: "${VITE_API_BASE_URL}"
+      VITE_AUTH0_DOMAIN: "${VITE_AUTH0_DOMAIN}"
+      VITE_AUTH0_CLIENT_ID: "${VITE_AUTH0_CLIENT_ID}"
+      VITE_AUTH0_AUDIENCE: "${VITE_AUTH0_AUDIENCE}"
+    depends_on:
+      - api
 
 volumes:
   postgres:

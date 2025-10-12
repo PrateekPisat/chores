@@ -38,15 +38,6 @@ export const taskStore = defineStore('task', {
       }
     }
   },
-  getters: {
-    config: () => {
-      return {
-        headers: {
-          Authorization: 'Bearer FakeToken',
-        },
-      }
-    }
-  },
   actions: {
     resetForm() {
       this.newChore = {
@@ -65,7 +56,7 @@ export const taskStore = defineStore('task', {
     async fetchTasks(userId: string) {
       try {
         this.loading = true;
-        const response = await api.get(`/user/${userId}/tasks`, this.config);
+        const response = await api.get(`/user/${userId}/tasks`);
         this.tasks = response.data;
       } catch (error) {
         console.error('Failed to fetch tasks:', error);
@@ -77,7 +68,7 @@ export const taskStore = defineStore('task', {
     async deleteTask(taskId: string) {
       this.loading = true;
       try {
-        await api.delete(`/task/${taskId}`, this.config);
+        await api.delete(`/task/${taskId}`);
       } catch (error) {
         console.error('Failed to delete task:', error);
         this.errors = new Map([['deleteTask', ['Failed to delete task']]]);
@@ -91,7 +82,6 @@ export const taskStore = defineStore('task', {
         await api.put(
           `/task/${taskId}`,
           { completedAt: completed ? new Date() : null, dueDate: dueDate },
-          this.config
         );
       } catch (error) {
         console.error('Failed to update task:', error);
@@ -102,14 +92,14 @@ export const taskStore = defineStore('task', {
     },
     async checkCreateChore() {
       this.loading = true;
-      return api.post('/chore/choreValidate', this.newChore, this.config)
+      return api.post('/chore/choreValidate', this.newChore)
         .then(() => { this.errors = null })
         .catch((err) => { this.errors = handleError(err) })
         .finally(() => { this.loading = false })
     },
     async checkCreateDistribution(userIds: string[], choreId: string) {
       this.loading = true;
-      return api.post('/chore/distributionValidate', { userIds, choreId }, this.config)
+      return api.post('/chore/distributionValidate', { userIds, choreId })
         .then(() => { this.errors = null })
         .catch((err) => { this.errors = handleError(err) })
         .finally(() => { this.loading = false })
@@ -117,7 +107,7 @@ export const taskStore = defineStore('task', {
     async getDistribution(choreId: string) {
       this.loading = true;
       try {
-        const response = await api.get(`/chore/${choreId}/distribution`, this.config);
+        const response = await api.get(`/chore/${choreId}/distribution`);
         return response.data;
       } catch (error) {
         console.error('Failed to get distribution:', error);
@@ -130,7 +120,7 @@ export const taskStore = defineStore('task', {
     async createDistribution(userIds: string[], choreId: string) {
       this.loading = true;
       try {
-        await api.post('/chore/distribution', { userIds, choreId }, this.config);
+        await api.post('/chore/distribution', { userIds, choreId });
       } catch (error) {
         this.errors = new Map([['createDistribution', ['Failed to create distribution']]]);
       } finally {
@@ -140,7 +130,7 @@ export const taskStore = defineStore('task', {
     async updateDistribution(userIds: string[], choreId: string) {
       this.loading = true;
       try {
-        await api.put(`/chore/${choreId}/distribution`, { userIds, choreId }, this.config);
+        await api.put(`/chore/${choreId}/distribution`, { userIds, choreId });
       } catch (error) {
         this.errors = new Map([['updateDistribution', ['Failed to update distribution']]]);
       } finally {
@@ -150,7 +140,7 @@ export const taskStore = defineStore('task', {
     async createChore() {
       this.loading = true;
       try {
-        await api.post('/chore', this.newChore, this.config);
+        await api.post('/chore', this.newChore);
         this.resetForm();
       }
       catch (error) {
@@ -162,7 +152,7 @@ export const taskStore = defineStore('task', {
     async listChores(userId: string) {
       this.loading = true;
       try {
-        const response = await api.get(`/user/${userId}/chores`, this.config);
+        const response = await api.get(`/user/${userId}/chores`);
         this.chores = response.data;
       } catch (error) {
         this.errors = new Map([['listChores', ['Failed to list chores']]]);

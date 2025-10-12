@@ -2,6 +2,8 @@ import { boot } from 'quasar/wrappers';
 import axios, { AxiosError, AxiosInstance } from 'axios';
 import { join } from 'lodash';
 import { z } from 'zod';
+import { auth0 } from './auth0';
+
 
 declare module 'vue' {
   interface ComponentCustomProperties {
@@ -42,6 +44,11 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL, timeout: 5 * 60 * 1000,
   responseType: 'json',
 });
+api.interceptors.request.use(async (config) => {
+  const token = await getAccessTokenSilentlyOutsideComponent();
+  config.headers['Authorization'] = `Bearer ${token}`;
+  return config;
+});
 
 export default boot(({ app }) => {
   // for use inside Vue files (Options API) through this.$axios and this.$api
@@ -65,6 +72,9 @@ function registerResponseMappers(http: AxiosInstance) {
   });
 }
 
+export async function getAccessTokenSilentlyOutsideComponent() {
+  return auth0.getAccessTokenSilently();
+}
 registerResponseMappers(api);
 
 export { api, ErrorMap, ValidationError };

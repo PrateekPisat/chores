@@ -79,9 +79,11 @@ const props = defineProps({
     required: true,
   },
 });
+const emit = defineEmits(['close']);
 
 const tasksStore = taskStore();
 const userStore = userUserStore();
+
 const choreId: Ref<string> = ref('');
 let users: Ref<AppUser[]> = ref([]);
 const selectedUserIds: Ref<string[]> = ref([]);
@@ -96,15 +98,10 @@ async function listUsers() {
 }
 
 async function createOrUpdateDistribution(userIds: string[], choreId: string) {
-  if (distributionExists.value) {
-    // Logic to update the existing distribution
+  if (distributionExists.value)
     await tasksStore.updateDistribution(userIds, choreId);
-  } else {
-    // Logic to create a new distribution
-    await tasksStore.createDistribution(userIds, choreId);
-  }
-  // Logic to create or update the distribution
-  // This would typically involve an API call
+  else await tasksStore.createDistribution(userIds, choreId);
+  emit('close');
 }
 
 function getLabel(user: AppUser): string {

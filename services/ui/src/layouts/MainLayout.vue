@@ -18,15 +18,17 @@
 <script setup>
 import ProfileDropdown from 'src/components/ProfileDropdown.vue';
 import { onMounted } from 'vue';
+import { createAuth0 } from '@auth0/auth0-vue';
 import { userUserStore } from 'src/stores/userStore';
 const userStore = userUserStore();
+const auth0 = createAuth0();
 
 onMounted(() => {
   userStore.syncUser();
 });
 
 function logout() {
-  userStore.auth0.logout({
+  auth0.logout({
     logoutParams: {
       returnTo: window.location.origin,
     },

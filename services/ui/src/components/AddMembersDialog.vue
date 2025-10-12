@@ -14,7 +14,7 @@
             v-model="email"
             filled
             placeholder="Search"
-            @keypress.enter="searchUser"
+            @keypress.enter.stop="searchUser"
             :error-message="userStore.getErrors('email')"
             :error="!!userStore.getErrors('email')"
           >
@@ -89,7 +89,7 @@ async function beforeShow() {
 }
 
 async function searchUser() {
-  users.value = await userStore.searchUser(email.value);
+  users.value = await userStore.searchUser(email.value, null);
 }
 
 async function addMembers(house: House, user: AppUser) {

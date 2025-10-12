@@ -19,7 +19,7 @@
             emit-value
             :error-message="tasksStore.getErrors('houseId')"
             :error="!!tasksStore.getErrors('houseId')"
-            @blur="tasksStore.checkCreateChore"
+            @blur="tasksStore.checkCreateChore()"
           />
           <q-input
             filled
@@ -27,14 +27,14 @@
             v-model="tasksStore.newChore.name"
             :error-message="tasksStore.getErrors('name')"
             :error="!!tasksStore.getErrors('name')"
-            @blur="tasksStore.checkCreateChore"
+            @blur="tasksStore.checkCreateChore()"
           />
           <q-input
             filled
             placeholder="Description"
             v-model="tasksStore.newChore.description"
             type="textarea"
-            @blur="tasksStore.checkCreateChore"
+            @blur="tasksStore.checkCreateChore()"
             :error-message="tasksStore.getErrors('description')"
             :error="!!tasksStore.getErrors('description')"
           />
@@ -43,14 +43,14 @@
             v-model="tasksStore.newChore.cadence"
             :options="options"
             label="Cadence"
-            @blur="tasksStore.checkCreateChore"
+            @blur="tasksStore.checkCreateChore()"
             :error-message="tasksStore.getErrors('cadence')"
             :error="!!tasksStore.getErrors('cadence')"
           />
           <q-input
             filled
             v-model="tasksStore.newChore.startDate"
-            @blur="tasksStore.checkCreateChore"
+            @blur="tasksStore.checkCreateChore()"
             placeholder="Start Date"
             :error-message="tasksStore.getErrors('startDate')"
             :error="!!tasksStore.getErrors('startDate')"
@@ -71,7 +71,7 @@
             filled
             placeholder="End Date"
             v-model="tasksStore.newChore.endDate"
-            @blur="tasksStore.checkCreateChore"
+            @blur="tasksStore.checkCreateChore()"
             :error-message="tasksStore.getErrors('endDate')"
             :error="!!tasksStore.getErrors('endDate')"
           >

@@ -29,7 +29,7 @@
           </div>
         </div>
         <div class="col-1">
-          <q-btn class="q-pa-sm" flat @click="userStore.deleteUser()">
+          <q-btn class="q-pa-sm" flat @click="userStore.deleteUser(auth0)">
             <q-icon :name="mdiTrashCan" color="negative" />
           </q-btn>
         </div>
@@ -53,8 +53,10 @@ import {
 } from '@quasar/extras/mdi-v7';
 import Breadcrumbs from 'src/components/BreadCrumbs.vue';
 import UserForm from 'src/components/UserForm.vue';
+import { useAuth0 } from '@auth0/auth0-vue';
 
 const userStore = userUserStore();
+const auth0 = useAuth0();
 
 const props = defineProps({
   userId: {

@@ -10,6 +10,7 @@ class Config(BaseModel):
     logging: LoggingConfig
     postgres: PostgresConfig
     cryptography: CryptographyConfig
+    auth0: Auth0Config
     cert: CertConfig
 
     environment: Annotated[str | None, Env("ENVIRONMENT")] = None
@@ -39,6 +40,12 @@ class CryptographyConfig(BaseModel):
 class CertConfig(BaseModel):
     certs_path: Annotated[str | None, Env("CERTS_PATH")] = None
     hostname: Annotated[str | None, Env("HOSTNAME")] = None
+
+
+class Auth0Config(BaseModel):
+    domain: Annotated[str, Env("AUTH0_DOMAIN")]
+    client_id: Annotated[str, Env("AUTH0_CLIENT_ID")]
+    audience: Annotated[str, Env("AUTH0_AUDIENCE")]
 
 
 def load_config():

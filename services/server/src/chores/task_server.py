@@ -49,7 +49,7 @@ from chores.grpc_generated.chores_pb2 import (
     User as UserPayload,
 )
 from chores.grpc_generated.chores_pb2_grpc import add_TaskServicer_to_server, TaskServicer
-from chores.interceptors import ExceptionToStatusInterceptor
+from chores.interceptors import AuthInterceptor, ExceptionToStatusInterceptor
 from chores.models.chore import Chore, ChoreDistribution, Task
 from chores.models.house import House, HouseMember
 from chores.users_server import _ONE_DAY_IN_SECONDS
@@ -288,7 +288,6 @@ class TaskServer(TaskServicer):
                     selectinload(Task.chore_distribution).selectinload(ChoreDistribution.chore),
                 )
                 .filter(ChoreDistribution.user_id == uuid.UUID(request.user_id))
-                .filter(Task.completed_at.is_(None))
                 .order_by(Task.due_date)
             )
 
@@ -368,7 +367,7 @@ class TaskServer(TaskServicer):
                 raise NotFound(f"Task {request.id} not found!")
 
             task.due_date = request.due_date
-            task.completed_at = request.completed_at
+            task.completed_at = request.completed_at if request.completed_at else None
 
             db.add(task)
             db.commit()
@@ -401,7 +400,9 @@ def serve():
         style=" %(name)s :: %(levelname)-8s :: %(message)s",
     )
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=[ExceptionToStatusInterceptor()])
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=10), interceptors=[ExceptionToStatusInterceptor(), AuthInterceptor()]
+    )
     add_TaskServicer_to_server(TaskServer(), server)
     server.add_secure_port(f"[::]:{config.task_service_port}", get_server_credentials(config))
     server.start()

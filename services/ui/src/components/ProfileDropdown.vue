@@ -1,6 +1,6 @@
 <template>
   <div class="q-pa-sm">
-    <q-btn-dropdown label="Profile" flat>
+    <q-btn-dropdown label="Options" flat>
       <div class="row no-wrap q-pa-sm">
         <q-list>
           <router-link :to="profileLink">

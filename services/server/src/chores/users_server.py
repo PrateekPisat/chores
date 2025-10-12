@@ -22,7 +22,7 @@ from chores.grpc_generated.chores_pb2 import (
     UpdateUserResponse,
 )
 from chores.grpc_generated.chores_pb2_grpc import add_UsersServicer_to_server, UsersServicer
-from chores.interceptors import ExceptionToStatusInterceptor
+from chores.interceptors import AuthInterceptor, ExceptionToStatusInterceptor
 from chores.models.chore import Chore
 from chores.models.house import House, HouseMember
 from chores.models.user import User
@@ -140,7 +140,9 @@ def serve():
         style=" %(name)s :: %(levelname)-8s :: %(message)s",
     )
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=[ExceptionToStatusInterceptor()])
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=10), interceptors=[ExceptionToStatusInterceptor(), AuthInterceptor()]
+    )
     add_UsersServicer_to_server(UsersServer(), server)
     server.add_secure_port(f"[::]:{config.user_service_port}", get_server_credentials(config))
     server.start()
