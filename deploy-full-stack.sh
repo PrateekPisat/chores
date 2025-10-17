@@ -7,16 +7,16 @@ set -e
 
 echo "🚀 Deploying Full Stack Chores Application..."
 
-# Check if .env.prod exists
-if [ ! -f ".env.prod" ]; then
-    echo "❌ Error: .env.prod file not found!"
-    echo "Please create .env.prod with all required environment variables."
+# Check if prod.env exists
+if [ ! -f "prod.env" ]; then
+    echo "❌ Error: prod.env file not found!"
+    echo "Please create prod.env with all required environment variables."
     echo "You can use .env as a template."
     exit 1
 fi
 
 # Load environment variables
-source .env.prod
+source prod.env
 
 # Pull latest changes
 echo "📥 Pulling latest changes..."
