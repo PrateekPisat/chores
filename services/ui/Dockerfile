@@ -34,10 +34,22 @@ FROM base AS build
 # Install all dependencies for building
 RUN npm ci --silent
 
+# Accept build arguments for Vite environment variables
+ARG VITE_API_BASE_URL
+ARG VITE_AUTH0_DOMAIN
+ARG VITE_AUTH0_CLIENT_ID
+ARG VITE_AUTH0_AUDIENCE
+
+# Set environment variables from build args
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_AUTH0_DOMAIN=$VITE_AUTH0_DOMAIN
+ENV VITE_AUTH0_CLIENT_ID=$VITE_AUTH0_CLIENT_ID
+ENV VITE_AUTH0_AUDIENCE=$VITE_AUTH0_AUDIENCE
+
 # Copy source code
 COPY . .
 
-# Build the app
+# Build the app with environment variables
 RUN quasar build
 
 # Production stage

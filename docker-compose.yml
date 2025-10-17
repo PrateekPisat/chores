@@ -5,10 +5,17 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
       POSTGRES_DB: "chores"
     volumes:
       - postgres:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     
   task_service:
     build:
@@ -21,7 +28,7 @@ services:
       LOGGING_LEVEL: "INFO"
       DATABASE_HOST: "postgres"
       DATABASE_USERNAME: "postgres"
-      DATABASE_PASSWORD: "postgres"
+      DATABASE_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
       DATABASE_DATABASE: "chores"
       DATABASE_PORT: 5432
       SECRET_KEY: "${SECRET_KEY}"
@@ -32,6 +39,8 @@ services:
       AUTH0_AUDIENCE: "${AUTH0_AUDIENCE}"
     depends_on:
       - postgres
+    networks:
+      - backend
     
   users_service:
     build:
@@ -44,7 +53,7 @@ services:
       LOGGING_LEVEL: "INFO"
       DATABASE_HOST: "postgres"
       DATABASE_USERNAME: "postgres"
-      DATABASE_PASSWORD: "postgres"
+      DATABASE_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
       DATABASE_DATABASE: "chores"
       DATABASE_PORT: 5432
       SECRET_KEY: "${SECRET_KEY}"
@@ -55,6 +64,8 @@ services:
       AUTH0_AUDIENCE: "${AUTH0_AUDIENCE}"
     depends_on:
       - postgres
+    networks:
+      - backend
   
   house_service:
     build:
@@ -67,7 +78,7 @@ services:
       LOGGING_LEVEL: "INFO"
       DATABASE_HOST: "postgres"
       DATABASE_USERNAME: "postgres"
-      DATABASE_PASSWORD: "postgres"
+      DATABASE_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
       DATABASE_DATABASE: "chores"
       DATABASE_PORT: 5432
       SECRET_KEY: "${SECRET_KEY}"
@@ -78,6 +89,8 @@ services:
       AUTH0_AUDIENCE: "${AUTH0_AUDIENCE}"
     depends_on:
       - postgres
+    networks:
+      - backend
   
   api:
     build:
@@ -103,25 +116,77 @@ services:
       - task_service
       - users_service
       - house_service
+    networks:
+      - backend
+      - frontend
 
   ui:
     build:
       context: ./services/ui
       dockerfile: Dockerfile
-      target: development
+      target: ${UI_TARGET:-development}
     ports:
       - "9000:9000"
     volumes:
       - ./services/ui:/app
       - /app/node_modules
     environment:
-      NODE_ENV: development
-      VITE_API_BASE_URL: "${VITE_API_BASE_URL}"
+      NODE_ENV: ${NODE_ENV:-development}
+      VITE_API_BASE_URL: "${VITE_API_BASE_URL:-http://localhost/api}"
       VITE_AUTH0_DOMAIN: "${VITE_AUTH0_DOMAIN}"
       VITE_AUTH0_CLIENT_ID: "${VITE_AUTH0_CLIENT_ID}"
       VITE_AUTH0_AUDIENCE: "${VITE_AUTH0_AUDIENCE}"
     depends_on:
       - api
+    networks:
+      - frontend
+    profiles:
+      - dev
+
+  ui-prod:
+    build:
+      context: ./services/ui
+      dockerfile: Dockerfile
+      target: production
+      args:
+        VITE_API_BASE_URL: "${VITE_API_BASE_URL:-http://localhost/api}"
+        VITE_AUTH0_DOMAIN: "${VITE_AUTH0_DOMAIN}"
+        VITE_AUTH0_CLIENT_ID: "${VITE_AUTH0_CLIENT_ID}"
+        VITE_AUTH0_AUDIENCE: "${VITE_AUTH0_AUDIENCE}"
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - frontend
+    profiles:
+      - production
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - ui-prod
+      - api
+    networks:
+      - frontend
+    profiles:
+      - production
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
 
 volumes:
   postgres:
