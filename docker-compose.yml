@@ -16,6 +16,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    profiles:
+      - dev
     
   task_service:
     build:
@@ -26,19 +28,17 @@ services:
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-local}
       LOGGING_LEVEL: "INFO"
-      DATABASE_HOST: "postgres"
-      DATABASE_USERNAME: "postgres"
+      DATABASE_HOST: "${DATABASE_HOST:-postgres}"
+      DATABASE_USERNAME: "${DATABASE_USERNAME:-postgres}"
       DATABASE_PASSWORD: "${DATABASE_PASSWORD:-postgres}"
-      DATABASE_DATABASE: "chores"
-      DATABASE_PORT: 5432
+      DATABASE_DATABASE: "${DATABASE_DATABASE:-chores}"
+      DATABASE_PORT: "${DATABASE_PORT:-5432}"
       SECRET_KEY: "${SECRET_KEY}"
       CERTS_PATH: "/service/certs/task_service"
       HOSTNAME: "task_service"
       AUTH0_DOMAIN: "${AUTH0_DOMAIN}"
       AUTH0_CLIENT_ID: "${AUTH0_CLIENT_ID}"
       AUTH0_AUDIENCE: "${AUTH0_AUDIENCE}"
-    depends_on:
-      - postgres
     networks:
       - backend
     
@@ -51,19 +51,17 @@ services:
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-local}
       LOGGING_LEVEL: "INFO"
-      DATABASE_HOST: "postgres"
-      DATABASE_USERNAME: "postgres"
+      DATABASE_HOST: "${DATABASE_HOST:-postgres}"
+      DATABASE_USERNAME: "${DATABASE_USERNAME:-postgres}"
       DATABASE_PASSWORD: "${DATABASE_PASSWORD:-postgres}"
-      DATABASE_DATABASE: "chores"
-      DATABASE_PORT: 5432
+      DATABASE_DATABASE: "${DATABASE_DATABASE:-chores}"
+      DATABASE_PORT: "${DATABASE_PORT:-5432}"
       SECRET_KEY: "${SECRET_KEY}"
       CERTS_PATH: "/service/certs/users_service"
       HOSTNAME: "users_service"
       AUTH0_DOMAIN: "${AUTH0_DOMAIN}"
       AUTH0_CLIENT_ID: "${AUTH0_CLIENT_ID}"
       AUTH0_AUDIENCE: "${AUTH0_AUDIENCE}"
-    depends_on:
-      - postgres
     networks:
       - backend
   
@@ -76,19 +74,17 @@ services:
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-local}
       LOGGING_LEVEL: "INFO"
-      DATABASE_HOST: "postgres"
-      DATABASE_USERNAME: "postgres"
+      DATABASE_HOST: "${DATABASE_HOST:-postgres}"
+      DATABASE_USERNAME: "${DATABASE_USERNAME:-postgres}"
       DATABASE_PASSWORD: "${DATABASE_PASSWORD:-postgres}"
-      DATABASE_DATABASE: "chores"
-      DATABASE_PORT: 5432
+      DATABASE_DATABASE: "${DATABASE_DATABASE:-chores}"
+      DATABASE_PORT: "${DATABASE_PORT:-5432}"
       SECRET_KEY: "${SECRET_KEY}"
       CERTS_PATH: "/service/certs/house_service"
       HOSTNAME: "house_service"
       AUTH0_DOMAIN: "${AUTH0_DOMAIN}"
       AUTH0_CLIENT_ID: "${AUTH0_CLIENT_ID}"
       AUTH0_AUDIENCE: "${AUTH0_AUDIENCE}"
-    depends_on:
-      - postgres
     networks:
       - backend
   

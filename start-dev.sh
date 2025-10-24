@@ -20,11 +20,11 @@ fi
 
 # Stop existing services
 echo "🛑 Stopping existing services..."
-docker-compose down
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
 
 # Build and start development services (with dev profile)
 echo "🔨 Building and starting development services..."
-docker-compose --profile dev up -d --build
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev up -d --build
 
 # Wait for services to start
 echo "⏳ Waiting for services to start..."
@@ -57,12 +57,12 @@ echo "🗄️  Database: localhost:5432"
 
 echo ""
 echo "📋 Service status:"
-docker-compose --profile dev ps
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev ps
 
 echo ""
 echo "🔧 Useful commands:"
-echo "  View logs: docker-compose --profile dev logs -f"
-echo "  Stop all: docker-compose --profile dev down"
-echo "  Restart: docker-compose --profile dev restart"
+echo "  View logs: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev logs -f"
+echo "  Stop all: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev down"
+echo "  Restart: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev restart"
 echo "  Shell into API: docker-compose exec api bash"
 echo "  Shell into UI: docker-compose exec ui sh"

@@ -42,12 +42,6 @@ sleep 60
 # Check service health
 echo "🔍 Checking service health..."
 
-# Check if postgres is ready
-until docker-compose --profile production exec -T postgres pg_isready -U postgres; do
-    echo "Waiting for PostgreSQL to be ready..."
-    sleep 5
-done
-
 # Check if API is responding
 API_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health || echo "000")
 if [ "$API_HEALTH" = "200" ]; then

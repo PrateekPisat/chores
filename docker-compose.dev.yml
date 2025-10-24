@@ -1,0 +1,12 @@
+services:
+  task_service:
+    depends_on:
+      - postgres
+
+  users_service:
+    depends_on:
+      - postgres
+
+  house_service:
+    depends_on:
+      - postgres
