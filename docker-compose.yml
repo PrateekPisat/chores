@@ -5,7 +5,7 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+      POSTGRES_PASSWORD: "postgres"
       POSTGRES_DB: "chores"
     volumes:
       - postgres:/var/lib/postgresql/data
@@ -28,7 +28,7 @@ services:
       LOGGING_LEVEL: "INFO"
       DATABASE_HOST: "postgres"
       DATABASE_USERNAME: "postgres"
-      DATABASE_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+      DATABASE_PASSWORD: "${DATABASE_PASSWORD:-postgres}"
       DATABASE_DATABASE: "chores"
       DATABASE_PORT: 5432
       SECRET_KEY: "${SECRET_KEY}"
@@ -53,7 +53,7 @@ services:
       LOGGING_LEVEL: "INFO"
       DATABASE_HOST: "postgres"
       DATABASE_USERNAME: "postgres"
-      DATABASE_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+      DATABASE_PASSWORD: "${DATABASE_PASSWORD:-postgres}"
       DATABASE_DATABASE: "chores"
       DATABASE_PORT: 5432
       SECRET_KEY: "${SECRET_KEY}"
@@ -78,7 +78,7 @@ services:
       LOGGING_LEVEL: "INFO"
       DATABASE_HOST: "postgres"
       DATABASE_USERNAME: "postgres"
-      DATABASE_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+      DATABASE_PASSWORD: "${DATABASE_PASSWORD:-postgres}"
       DATABASE_DATABASE: "chores"
       DATABASE_PORT: 5432
       SECRET_KEY: "${SECRET_KEY}"
@@ -166,9 +166,12 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot-certs:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot:ro
     depends_on:
       - ui-prod
       - api
@@ -182,6 +185,16 @@ services:
       timeout: 10s
       retries: 3
 
+  certbot:
+    image: certbot/certbot
+    restart: "no"
+    volumes:
+      - certbot-certs:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    profiles:
+      - production
+
 networks:
   backend:
     driver: bridge
@@ -190,4 +203,8 @@ networks:
 
 volumes:
   postgres:
+    driver: local
+  certbot-certs:
+    driver: local
+  certbot-www:
     driver: local

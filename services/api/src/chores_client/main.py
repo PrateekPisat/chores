@@ -9,10 +9,10 @@ def create_app(routes: list):
     app = FastAPI(debug=True)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=["https://chores.prateekpisat.com", "https://www.chores.prateekpisat.com"],
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "Accept"],
     )
 
     for route in routes:
