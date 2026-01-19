@@ -49,17 +49,31 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  demoMode: {
+    type: Boolean,
+    default: false,
+  },
 });
 const tasksStore = taskStore();
-const emit = defineEmits(['refresh']);
+const emit = defineEmits(['refresh', 'update', 'delete']);
 
 async function deleteTask() {
-  await tasksStore.deleteTask(props.task.id);
-  emit('refresh');
+  if (props.demoMode) {
+    emit('delete', props.task.id);
+    emit('refresh');
+  } else {
+    await tasksStore.deleteTask(props.task.id);
+    emit('refresh');
+  }
 }
 
 async function updateTask(completed: boolean, dueDate: string) {
-  await tasksStore.updateTask(props.task.id, completed, dueDate);
-  emit('refresh');
+  if (props.demoMode) {
+    emit('update', props.task.id, completed, dueDate);
+    emit('refresh');
+  } else {
+    await tasksStore.updateTask(props.task.id, completed, dueDate);
+    emit('refresh');
+  }
 }
 </script>
