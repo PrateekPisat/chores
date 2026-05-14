@@ -1,3 +1,4 @@
+import random
 import time
 import uuid
 from concurrent import futures
@@ -181,6 +182,7 @@ class TaskServer(TaskServicer):
             if not chore:
                 raise NotFound(f"Chore {request.chore_id} not found!")
 
+            random.shuffle(request.user_ids)
             distributions = [
                 ChoreDistribution(chore_id=uuid.UUID(request.chore_id), user_id=uuid.UUID(user_id))
                 for user_id in request.user_ids
@@ -242,6 +244,7 @@ class TaskServer(TaskServicer):
 
             db.execute(delete(ChoreDistribution).where(ChoreDistribution.chore_id == chore.id))
 
+            random.shuffle(request.user_ids)
             distributions = [
                 ChoreDistribution(chore_id=uuid.UUID(request.chore_id), user_id=uuid.UUID(user_id))
                 for user_id in request.user_ids
