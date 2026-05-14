@@ -1,74 +1,19 @@
 # Chores Application
 
-## Database Configuration
+Yes, this is a glorified to-do list. My roommates and I had a piece of paper stuck to the fridge, with the chores each of us had to perform each week. One day, we ran out of room and all of us were too lazy to replace it with another piece. So, I spent months building an app instead of replacing that piece of paper, which would have taken minutes.
 
-This application supports different database configurations for development and production environments.
+<div style="text-align: center;">
+  <img src="https://imgs.xkcd.com/comics/automation.png" alt="Centered image" style="display: block; margin: 0 auto;">
+</div>
 
-### Development Environment
+The gist is that you (and your roommates) are assigned tasks each week, and you can mark those tasks as completed(ideally when you actually do the work).
 
-In development mode, PostgreSQL runs as a Docker container:
+---
 
-```bash
-# Start development environment with local PostgreSQL
-./start-dev.sh
-```
+## Model Hierarchy (Backend SQLAlchemy Models)
 
-This will:
-- Start a PostgreSQL container accessible at `localhost:5432`
-- Use default credentials: `postgres/postgres`
-- Create a database named `chores`
-
-### Production Environment
-
-In production mode, PostgreSQL is **not included** in the Docker Compose setup. You need to configure an external database.
-
-#### Required Environment Variables
-
-Update your `prod.env` file with your external database configuration:
-
-```bash
-# External Database Configuration
-DATABASE_HOST="your-external-db-host"        # e.g., "db.example.com"
-DATABASE_USERNAME="your-db-username"
-DATABASE_PASSWORD="your-db-password"
-DATABASE_DATABASE="chores"
-DATABASE_PORT=5432
-```
-
-#### Supported External Database Options
-
-- **Managed PostgreSQL Services:**
-  - AWS RDS PostgreSQL
-  - Google Cloud SQL for PostgreSQL
-  - Azure Database for PostgreSQL
-  - DigitalOcean Managed Databases
-  
-- **Self-hosted PostgreSQL:**
-  - Separate PostgreSQL server
-  - PostgreSQL running on the same server (outside Docker)
-
-#### Database Migration
-
-Before running in production, ensure your external database has the required schema:
-
-```bash
-# Run migrations against your external database
-docker-compose --profile production exec api python -m alembic upgrade head
-```
-
-### Commands
-
-```bash
-# Development (with local PostgreSQL)
-./start-dev.sh
-
-# Production (with external database)
-./deploy-full-stack.sh
-```
-
-## Security Notes
-
-- Always use strong passwords for production databases
-- Enable SSL/TLS connections to your external database
-- Consider using connection pooling for better performance
-- Regularly backup your production database
+- **House**: Represents a household. Each house can have multiple users as members (via the `HouseMember` association table) and can have multiple chores assigned to it.
+- **User**: Represents a person using the app. Users can belong to multiple houses (again via `HouseMember`) and can be assigned chores through chore distributions.
+- **HouseMember**: Association table that links users and houses, enabling a many-to-many relationship between them. Each entry represents a user being a member of a specific house.
+- **Chore**: Represents a chore or task that belongs to a house. Each chore can be distributed to users for completion, and is associated with a single house.
+- **ChoreDistribution**: Represents the assignment of a specific chore to a user, enabling tracking of which user is responsible for which chore instance.
