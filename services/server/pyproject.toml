@@ -1,45 +1,43 @@
-[tool.poetry]
+[project]
 name = "chores"
 version = "0.1.0"
-description = ""
-authors = ["Prateek Pisat <pisatprateek12@gmail.com>"]
 readme = "README.md"
-packages = [
-  {include = "chores", from = "src"},
+authors = [{ name = "Prateek Pisat", email = "pisatprateek12@gmail.com" }]
+requires-python = ">=3.12,<4"
+dependencies = [
+    "grpcio>=1.66.0,<2",
+    "grpcio-tools>=1.66.0,<2",
+    "dataclass-settings>=0.4.0,<0.5",
+    "pydantic>=2.8.2,<3",
+    "sqlalchemy-declarative-extensions[parse]>=0.13.0,<0.14",
+    "alembic>=1.13.2,<2",
+    "psycopg2-binary>=2.9.9,<3",
+    "dependency-injector>=4.42.0,<5",
+    "pydantic-settings>=2.5.2,<3",
+    "pendulum>=3.0.0,<4",
+    "grpc-interceptor[testing]>=0.15.4,<0.16",
+    "pyjwt[crypto]>=2.9.0,<3",
+    "setuplog>=0.4.1,<0.5",
+    "email-validator>=2.2.0,<3",
+    "argon2-cffi>=23.1.0,<24",
+    "auth0-python>=4.10.0,<5",
+    "python-jose[cryptography]>=3.5.0,<4",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-grpcio = "^1.66.0"
-grpcio-tools = "^1.66.0"
-dataclass-settings = "^0.4.0"
-pydantic = "^2.8.2"
-sqlalchemy-declarative-extensions = {version = "^0.13.0", extras = ["parse"]}
-alembic = "^1.13.2"
-psycopg2-binary = "^2.9.9"
-dependency-injector = "^4.42.0"
-pydantic-settings = "^2.5.2"
-pendulum = "^3.0.0"
-grpc-interceptor = {version = "^0.15.4", extras = ["testing"]}
-pyjwt = {version = "^2.9.0", extras = ["crypto"]}
-setuplog = "^0.4.1"
-email-validator = "^2.2.0"
-argon2-cffi = "^23.1.0"
-auth0-python = "^4.10.0"
-python-jose = {version = "^3.5.0", extras = ["cryptography"]}
-
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.6.2"
-pytest = "^8.3.2"
-mypy = "^1.11.2"
-pytest-grpc = "^0.8.0"
-pytest-mock-resources = {version = "^2.12.1", extras = ["postgres-binary", "docker"]}
-sqlalchemy-model-factory = "^0.4.6"
-faker = "^30.0.0"
-coverage = "^7.6.1"
+[dependency-groups]
+dev = [
+    "ruff>=0.6.2,<0.7",
+    "pytest>=8.3.2,<9",
+    "mypy>=1.11.2,<2",
+    "pytest-grpc>=0.8.0,<0.9",
+    "pytest-mock-resources[postgres-binary,docker]>=2.12.1,<3",
+    "sqlalchemy-model-factory>=0.4.6,<0.5",
+    "faker>=30.0.0,<31",
+    "coverage>=7.6.1,<8",
+]
 
 [tool.ruff]
-extend = '../../ruff.toml'
+extend = "../../ruff.toml"
 line-length = 120
 
 [tool.pytest.ini_options]
@@ -47,5 +45,5 @@ doctest_optionflags = "NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL ELLIPSIS"
 addopts = "--doctest-modules -vv --ff"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"

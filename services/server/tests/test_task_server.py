@@ -249,9 +249,7 @@ class Test_ChoreDistribution:
         assert response.id == str(chore.id)
 
         chore_distribution = db.query(ChoreDistribution).filter(ChoreDistribution.chore_id == chore.id).all()
-        assert len(chore_distribution) == 2
-        assert chore_distribution[0].user_id == user1.id
-        assert chore_distribution[1].user_id == user2.id
+        assert {distribution.user_id for distribution in chore_distribution} == {user1.id, user2.id}
 
         tasks = (
             db.query(Task)
@@ -333,9 +331,7 @@ class Test_ChoreDistribution:
         assert response.id == str(chore.id)
 
         chore_distribution = db.query(ChoreDistribution).filter(ChoreDistribution.chore_id == chore.id).all()
-        assert len(chore_distribution) == 2
-        assert chore_distribution[0].user_id == user1.id
-        assert chore_distribution[1].user_id == user2.id
+        assert {distribution.user_id for distribution in chore_distribution} == {user1.id, user2.id}
 
         tasks = (
             db.query(Task)

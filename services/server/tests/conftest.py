@@ -58,6 +58,11 @@ def config(db: Session):
             "environment": "test",
             "logging": {"level": "DEBUG"},
             "cryptography": {"secret_key": Fernet.generate_key()},
+            "auth0": {
+                "domain": "test.auth0.com",
+                "client_id": "test-client-id",
+                "audience": "test-audience",
+            },
             "cert": {
                 "certs_path": "../../certs/localhost/",
                 "hostname": "localhost",
