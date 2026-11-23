@@ -53,8 +53,7 @@ const emit = defineEmits(['close', 'update']);
 const houseStore = userHouseStore();
 
 async function createHouse() {
-  const houseId = await houseStore.createHouse();
-  await houseStore.addMembers(houseId, [props.userId]);
+  await houseStore.createHouse();
   houseStore.listUserHouses(props.userId);
   houseStore.reset();
   emit('close');

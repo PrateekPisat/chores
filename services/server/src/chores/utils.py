@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from functools import cache
 
 import grpc
@@ -9,7 +9,7 @@ from google.protobuf.internal import enum_type_wrapper
 from pydantic import ValidationError
 
 from chores.config import Config
-from chores.grpc_generated.chores_pb2 import Cadence, UpdateChorePayload
+from chores.grpc_generated.chores_pb2 import UpdateChorePayload
 from chores.models.chore import Chore
 from chores.models.user import User
 
@@ -21,24 +21,32 @@ def enum_mapper(enum_class: enum_type_wrapper.EnumTypeWrapper) -> dict:
     return dict(zip(enum_class.values(), enum_class.keys()))
 
 
-def get_intervals(start_date: date, end_date: date, cadence: Cadence) -> Generator[date, None, None]:
+def get_intervals(start_date: date, end_date: date, cadence: str) -> Generator[date, None, None]:
     while start_date < end_date:
         start_date = start_date + timedelta(**{CADENCE_MAP[cadence]: 1})
         yield start_date
 
 
+def _to_date(value: date | datetime | str) -> date:
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    return pendulum.parse(str(value)).date()
+
+
 def distribution_needs_update(chore: Chore, request: UpdateChorePayload, enum_map: dict) -> bool:
     return (
         enum_map[request.cadence] != chore.cadence
-        or request.start_date != chore.start_date
-        or request.end_date != chore.end_date
+        or _to_date(request.start_date) != _to_date(chore.start_date)
+        or _to_date(request.end_date) != _to_date(chore.end_date)
     )
 
 
 def get_token_payload(user: User, secret_key: str) -> str:
     return jwt.encode(
         {
-            "sub": str(user.id),
+            "sub": user.sub,
             "name": user.name,
             "nickname": user.first_name,
             "exp": pendulum.now().add(days=1).timestamp(),

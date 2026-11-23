@@ -1,8 +1,10 @@
 from concurrent import futures
 
 import grpc
+import jwt
 import pytest
 from argon2 import PasswordHasher
+from chores.auth import current_user_email, current_user_sub
 from chores.config import Config
 from chores.deps import Container, providers
 from chores.grpc_generated.chores_pb2_grpc import (
@@ -19,7 +21,7 @@ from chores.models.base import Base
 from chores.task_server import TaskServer
 from chores.users_server import UsersServer
 from cryptography.fernet import Fernet
-from grpc_interceptor import ServerInterceptor
+from grpc_interceptor.server import ServerInterceptor
 from pytest_mock_resources import create_postgres_fixture
 from sqlalchemy.orm import Session
 from sqlalchemy_model_factory import base, Registry
@@ -107,9 +109,37 @@ def container(config: Config, db: Session):
     yield mock_container
 
 
+class TokenSubInterceptor(ServerInterceptor):
+    """Test stand-in for AuthInterceptor: trust the bearer token subject."""
+
+    def intercept(self, method, request_or_iterator, context, method_name):
+        sub = None
+        metadata: list = list(context.invocation_metadata() or ())
+        for datum in metadata:
+            if datum.key.lower() != "authorization":
+                continue
+            token = datum.value.removeprefix("Bearer").strip()
+            if not token:
+                continue
+            payload = jwt.decode(token, options={"verify_signature": False})
+            sub = payload.get("sub")
+            email = payload.get("email")
+        if not sub:
+            return method(request_or_iterator, context)
+
+        token_email = email.strip() if isinstance(email, str) and email.strip() else None
+        sub_token = current_user_sub.set(sub)
+        email_token = current_user_email.set(token_email)
+        try:
+            return method(request_or_iterator, context)
+        finally:
+            current_user_sub.reset(sub_token)
+            current_user_email.reset(email_token)
+
+
 @pytest.fixture
-def interceptors():
-    return [ExceptionToStatusInterceptor()]
+def interceptors() -> list[ServerInterceptor]:
+    return [ExceptionToStatusInterceptor(), TokenSubInterceptor()]
 
 
 @pytest.fixture
@@ -119,7 +149,7 @@ def user_service(
     channel_credentials: grpc.ChannelCredentials,
     server_credentials: grpc.ServerCredentials,
 ):
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=interceptors)
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=interceptors)  # type: ignore
     add_UsersServicer_to_server(UsersServer(), server)
     port = server.add_secure_port("[::]:50055", server_credentials)
     server.start()
@@ -138,7 +168,7 @@ def house_service(
     channel_credentials: grpc.ChannelCredentials,
     server_credentials: grpc.ServerCredentials,
 ):
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=interceptors)
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=interceptors)  # type: ignore
     add_HouseServicer_to_server(HouseServer(), server)
     port = server.add_secure_port("[::]:50055", server_credentials)
     server.start()
@@ -157,7 +187,7 @@ def task_service(
     channel_credentials: grpc.ChannelCredentials,
     server_credentials: grpc.ServerCredentials,
 ):
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=interceptors)
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=interceptors)  # type: ignore
     add_TaskServicer_to_server(TaskServer(), server)
     port = server.add_secure_port("[::]:50055", server_credentials)
     server.start()
