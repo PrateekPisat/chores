@@ -1,37 +1,50 @@
 <template>
-  <div class="col-sm-12 col-md-4 q-pa-xs" style="width: 400px">
-    <q-card class="my-card" bordered :class="{ 'bg-red-1': props.pastDue }">
-      <q-card-section horizontal>
-        <q-card-section class="q-pt-xs">
-          <div class="text-h5 q-mt-sm q-mb-xs">{{ props.task.chore.name }}</div>
-          <div class="text-caption text-grey">
-            {{ props.task.chore.description }}
+  <div class="col-12 col-sm-6">
+    <q-card flat bordered>
+      <q-card-section>
+        <div class="row items-start no-wrap">
+          <div>
+            <div class="text-h6">{{ props.task.chore.name }}</div>
+            <div class="text-caption text-grey">
+              {{ props.task.chore.description }}
+            </div>
           </div>
-        </q-card-section>
-        <q-space />
-        <q-btn flat color="negative" :icon="mdiTrashCan" @click="deleteTask" />
+          <q-space />
+          <q-btn
+            flat
+            round
+            color="negative"
+            :icon="mdiTrashCan"
+            aria-label="Delete task"
+            @click="confirmDelete"
+          />
+        </div>
+        <q-badge
+          class="q-mt-sm"
+          :color="props.pastDue ? 'negative' : 'primary'"
+          :outline="props.pastDue"
+          :label="fluentFormatDatetime(task.dueDate)"
+        />
       </q-card-section>
-
       <q-separator />
-
       <q-card-actions>
-        <span> {{ fluentFormatDatetime(task.dueDate) }} </span>
-        <q-space />
         <q-checkbox
           :model-value="completed"
-          :color="completed ? 'positive' : 'secondary'"
+          :color="completed ? 'positive' : 'primary'"
           @update:model-value="(value: boolean) => updateTask(value, props.task.dueDate)"
         >
-          <span :class="completed ? 'text-green' : 'text-black'">{{
-            completed ? 'Completed' : 'Mark as Completed'
-          }}</span>
+          <span :class="completed ? 'text-positive' : ''">
+            {{ completed ? 'Completed' : 'Mark as completed' }}
+          </span>
         </q-checkbox>
       </q-card-actions>
     </q-card>
   </div>
 </template>
+
 <script setup lang="ts">
 import { mdiTrashCan } from '@quasar/extras/mdi-v7';
+import { useQuasar } from 'quasar';
 import { Task, taskStore } from 'src/stores/taskStore';
 import { PropType } from 'vue';
 import { fluentFormatDatetime } from 'src/utils';
@@ -56,6 +69,19 @@ const props = defineProps({
 });
 const tasksStore = taskStore();
 const emit = defineEmits(['refresh', 'update', 'delete']);
+const $q = useQuasar();
+
+function confirmDelete() {
+  $q.dialog({
+    title: 'Delete task',
+    message: `Delete ${props.task.chore.name}?`,
+    cancel: true,
+    persistent: true,
+    ok: { label: 'Delete', color: 'negative' },
+  }).onOk(() => {
+    void deleteTask();
+  });
+}
 
 async function deleteTask() {
   if (props.demoMode) {

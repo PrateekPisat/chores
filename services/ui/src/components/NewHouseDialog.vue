@@ -1,9 +1,9 @@
 <template>
   <q-dialog :model-value="props.card" @hide="emit('close')">
-    <q-card class="my-card">
-      <div class="q-pa-md" style="max-width: 400px">
+    <q-card style="width: 100%; max-width: 420px">
+      <div class="q-pa-md">
         <q-form class="q-gutter-md">
-          <div class="text-h6">Create A New House</div>
+          <div class="text-h6">Create a house</div>
           <q-input
             filled
             v-model="houseStore.createHouseForm.name"
@@ -14,21 +14,15 @@
             :error="!!houseStore.getErrors('name')"
           />
 
-          <div>
+          <div class="row items-center">
+            <q-btn label="Close" flat @click="emit('close')" />
+            <q-space />
             <q-btn
-              label="Create House"
+              label="Create house"
               type="button"
               color="primary"
               :disable="!!houseStore.getErrors('name')"
               @click="createHouse()"
-            />
-            <q-btn
-              label="Close"
-              type="reset"
-              color="primary"
-              flat
-              class="q-ml-sm"
-              @click="emit('close')"
             />
           </div>
         </q-form>

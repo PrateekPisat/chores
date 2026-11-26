@@ -1,59 +1,47 @@
 <template>
-  <q-page padding>
-    <div>
-      <p class="text-h3">Hello {{ userStore.appUser.firstName }} 👋</p>
-      <p class="text-subtitle1 text-weight-light q-pl-sm text-primary">
+  <q-page class="q-pa-md">
+    <div class="page-wrap">
+      <div class="text-h4">Hello {{ userStore.appUser.firstName }}</div>
+      <p class="text-subtitle1 text-primary q-mb-lg">
         Let's get your tasks organized!
       </p>
-    </div>
 
-    <div v-if="tasksPastDue.length">
-      <p class="text-h5 text-negative">Tasks Past Due</p>
-      <div class="row justify-center">
-        <TaskCard
-          v-for="task in tasksPastDue"
-          :task="task"
-          :completed="!!task.completedAt"
-          :past-due="true"
-          :key="task.id"
-          @refresh="tasksStore.fetchTasks(userStore.appUser.userId)"
-        />
+      <div v-if="tasksStore.loading" class="row q-col-gutter-md">
+        <div v-for="n in 3" :key="n" class="col-12 col-sm-4">
+          <q-skeleton height="88px" />
+        </div>
       </div>
-    </div>
-    <div v-else>
-      <p class="text-subtitle1 text-grey">No pending tasks for this week.</p>
-    </div>
 
-    <div v-if="pendingTasks.length">
-      <p class="text-h5">Pending Tasks This Week</p>
-      <div class="row justify-center">
-        <TaskCard
-          v-for="task in pendingTasksThisWeek"
-          :task="task"
-          :completed="!!task.completedAt"
-          :key="task.id"
-          @refresh="tasksStore.fetchTasks(userStore.appUser.userId)"
-        />
-      </div>
-    </div>
-    <div v-else>
-      <p class="text-subtitle1 text-grey">No pending tasks for this week.</p>
-    </div>
+      <template v-else>
+        <div class="row q-col-gutter-md">
+          <div v-for="stat in stats" :key="stat.label" class="col-12 col-sm-4">
+            <q-card flat bordered>
+              <q-card-section>
+                <div class="text-caption text-grey">{{ stat.label }}</div>
+                <div class="text-h5" :class="stat.class">{{ stat.count }}</div>
+              </q-card-section>
+            </q-card>
+          </div>
+        </div>
 
-    <div v-if="pendingTasksThisMonth.length">
-      <p class="text-h5 q-pt-md">Pending Tasks This Month</p>
-      <div class="row justify-center">
-        <TaskCard
-          v-for="task in pendingTasksThisMonth"
-          :task="task"
-          :completed="!!task.completedAt"
-          :key="task.id"
-          @refresh="tasksStore.fetchTasks(userStore.appUser.userId)"
-        />
-      </div>
-    </div>
-    <div v-else>
-      <p class="text-subtitle1 text-grey">No pending tasks for this month.</p>
+        <template v-if="hasTasks">
+          <TaskGroup title="Past due" :tasks="groups.pastDue" past-due @refresh="reload" />
+          <TaskGroup title="This week" :tasks="groups.thisWeek" @refresh="reload" />
+          <TaskGroup title="This month" :tasks="groups.thisMonth" @refresh="reload" />
+          <TaskGroup title="Later" :tasks="groups.later" @refresh="reload" />
+        </template>
+        <div v-else class="column items-center q-pa-xl text-center">
+          <q-icon :name="mdiBroom" size="48px" color="primary" />
+          <div class="text-h6 q-mt-sm">Nothing due</div>
+          <q-btn
+            class="q-mt-md"
+            color="primary"
+            label="Tasks"
+            :to="{ name: 'tasks', params: { userId: userStore.appUser.userId } }"
+            :disable="!userStore.appUser.userId"
+          />
+        </div>
+      </template>
     </div>
   </q-page>
 </template>
@@ -62,51 +50,41 @@
 import { computed, onMounted } from 'vue';
 import { userUserStore } from 'src/stores/userStore';
 import { taskStore } from 'src/stores/taskStore';
-import TaskCard from 'src/components/TaskCard.vue';
-import { endOfWeek } from 'src/utils';
+import TaskGroup from 'src/components/TaskGroup.vue';
+import { groupByDue } from 'src/utils';
 import { useAuth0 } from '@auth0/auth0-vue';
+import { mdiBroom } from '@quasar/extras/mdi-v7';
+
 const auth0 = useAuth0();
 const userStore = userUserStore();
 const tasksStore = taskStore();
 
 onMounted(async () => {
   await userStore.syncUser(auth0.user.value);
+  await reload();
+});
+
+async function reload() {
+  if (!userStore.appUser.userId) {
+    return;
+  }
   await tasksStore.fetchTasks(userStore.appUser.userId);
-});
+}
 
-const pendingTasks = computed(() => {
-  return tasksStore.tasks.filter((task) => !task.completedAt);
-});
+const pendingTasks = computed(() => tasksStore.tasks.filter((task) => !task.completedAt));
+const groups = computed(() => groupByDue(pendingTasks.value));
+const hasTasks = computed(
+  () =>
+    groups.value.pastDue.length +
+      groups.value.thisWeek.length +
+      groups.value.thisMonth.length +
+      groups.value.later.length >
+    0
+);
 
-const tasksPastDue = computed(() => {
-  const today = new Date();
-  return pendingTasks.value.filter((task) => new Date(task.dueDate) < today);
-});
-
-const pendingTasksThisWeek = computed(() => {
-  const today = new Date();
-  const weekEndDate = endOfWeek(today);
-  const startOfWeek = new Date(today.getFullYear(), today.getMonth(), 0);
-  return pendingTasks.value.filter((task) => {
-    return (
-      new Date(task.dueDate) <= weekEndDate &&
-      new Date(task.dueDate) >= startOfWeek &&
-      !tasksPastDue.value.includes(task)
-    );
-  });
-});
-
-const pendingTasksThisMonth = computed(() => {
-  const today = new Date();
-  const monthEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  const monthStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
-  return pendingTasks.value.filter((task) => {
-    return (
-      new Date(task.dueDate) <= monthEndDate &&
-      new Date(task.dueDate) >= monthStartDate &&
-      !pendingTasksThisWeek.value.includes(task) &&
-      !tasksPastDue.value.includes(task)
-    );
-  });
-});
+const stats = computed(() => [
+  { label: 'Past due', count: groups.value.pastDue.length, class: 'text-negative' },
+  { label: 'Due this week', count: groups.value.thisWeek.length, class: '' },
+  { label: 'Due this month', count: groups.value.thisMonth.length, class: '' },
+]);
 </script>

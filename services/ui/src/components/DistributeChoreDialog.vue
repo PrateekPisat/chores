@@ -4,9 +4,9 @@
     @before-show="beforeShow"
     @hide="$emit('close')"
   >
-    <q-card>
-      <div class="q-pa-md" style="min-width: 400px">
-        <q-form class="q-m-sm">
+    <q-card style="width: 100%; max-width: 420px">
+      <div class="q-pa-md">
+        <q-form class="q-gutter-md">
           <div class="text-h6 q-mb-sm">Distribute a chore</div>
           <q-select
             filled
@@ -50,14 +50,17 @@
             </template>
           </q-select>
 
-          <q-btn
-            class="full-width q-mt-md"
-            color="primary"
-            :label="buttonLabel"
-            @click="createOrUpdateDistribution(selectedUserIds, choreId)"
-            :loading="tasksStore.loading"
-            :disable="tasksStore.loading"
-          />
+          <div class="row items-center">
+            <q-btn flat label="Close" @click="emit('close')" />
+            <q-space />
+            <q-btn
+              color="primary"
+              :label="buttonLabel"
+              @click="createOrUpdateDistribution(selectedUserIds, choreId)"
+              :loading="tasksStore.loading"
+              :disable="tasksStore.loading"
+            />
+          </div>
         </q-form>
       </div>
     </q-card>

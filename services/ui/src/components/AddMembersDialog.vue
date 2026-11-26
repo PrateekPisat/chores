@@ -4,9 +4,9 @@
     @hide="emit('close')"
     @before-show="beforeShow"
   >
-    <q-card>
-      <div class="q-pa-md" style="max-width: 400px">
-        <q-form class="q-m-xs">
+    <q-card style="width: 100%; max-width: 420px">
+      <div class="q-pa-md">
+        <q-form class="q-gutter-md">
           <div class="text-h6 q-mb-sm">
             Add Members to House {{ props.house.name }}
           </div>
@@ -57,6 +57,7 @@
             </q-item-section>
           </q-item>
         </q-list>
+        <q-btn class="q-mt-md" flat label="Close" @click="emit('close')" />
       </div>
     </q-card>
   </q-dialog>
