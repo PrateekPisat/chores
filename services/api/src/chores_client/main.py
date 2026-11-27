@@ -27,7 +27,9 @@ def get_allowed_origins() -> list[str]:
 
 
 def create_app(routes: list):
-    app = FastAPI(debug=True)
+    config = load_config()
+    debug = not (config.environment and config.environment.lower() == "production")
+    app = FastAPI(debug=debug)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=get_allowed_origins(),

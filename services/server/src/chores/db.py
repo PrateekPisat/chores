@@ -24,7 +24,7 @@ class Database:
         session_factory = sessionmaker(bind=engine)
         session = scoped_session(session_factory)
         try:
-            yield session
+            yield session()
         except Exception as e:
             session.rollback()
             raise e

@@ -1,3 +1,4 @@
+import logging
 import time
 import uuid
 from concurrent import futures
@@ -9,6 +10,7 @@ from setuplog import log, setup_logging
 from sqlalchemy import delete, func
 from sqlalchemy.exc import IntegrityError
 
+from chores.auth import escape_like, require_caller, require_house_member, require_self
 from chores.db import Database
 from chores.deps import Container
 from chores.errors import AlreadyExists, NotFound
@@ -43,9 +45,12 @@ class HouseServer(HouseServicer):
     def Create(
         self, request: CreatePayload, context: _Context, database: Database = Provide[Container.database]
     ) -> CreateResponse:
-        house = House(name=request.name)
         with database.session() as postgres:
+            caller = require_caller(postgres)
+            house = House(name=request.name)
             postgres.add(house)
+            postgres.flush()
+            postgres.add(HouseMember(house_id=house.id, user_id=caller.id))
             postgres.commit()
 
             return CreateResponse(house_id=str(house.id))
@@ -55,9 +60,10 @@ class HouseServer(HouseServicer):
         self, request: ListHousePayload, context: _Context, database: Database = Provide[Container.database]
     ) -> ListHousesResponse:
         with database.session() as db:
-            query = db.query(House)
+            caller = require_caller(db)
             if request.user_id:
-                query = query.join(HouseMember).filter(HouseMember.user_id == request.user_id)
+                require_self(caller, request.user_id, "Cannot list another user's houses")
+            query = db.query(House).join(HouseMember).filter(HouseMember.user_id == caller.id)
 
             return ListHousesResponse(
                 houses=[HouseResponse(house_id=str(house.id), name=house.name) for house in query]
@@ -68,7 +74,14 @@ class HouseServer(HouseServicer):
         self, request: SearchHousePayload, context: _Context, database: Database = Provide[Container.database]
     ) -> ListHousesResponse:
         with database.session() as db:
-            query = db.query(House).filter(func.lower(House.name).like(f"%{request.name.lower()}%"))
+            caller = require_caller(db)
+            name = escape_like(request.name.strip().lower())
+            query = (
+                db.query(House)
+                .join(HouseMember)
+                .filter(HouseMember.user_id == caller.id)
+                .filter(func.lower(House.name).like(f"%{name}%", escape="\\"))
+            )
 
             return ListHousesResponse(
                 houses=[HouseResponse(house_id=str(house.id), name=house.name) for house in query]
@@ -79,10 +92,8 @@ class HouseServer(HouseServicer):
         self, request: GetPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> GetResponse:
         with database.session() as db:
-            house = db.query(House).filter(House.id == request.house_id).one_or_none()
-
-        if not house:
-            raise NotFound("House not found!")
+            caller = require_caller(db)
+            house = require_house_member(db, caller, request.house_id)
 
         return GetResponse(house_id=str(house.id), name=house.name)
 
@@ -91,10 +102,8 @@ class HouseServer(HouseServicer):
         self, request: UpdatePayload, context: _Context, database: Database = Provide[Container.database]
     ) -> UpdateResponse:
         with database.session() as db:
-            house = db.query(House).filter(House.id == request.house_id).one_or_none()
-
-            if not house:
-                raise NotFound("House not found!")
+            caller = require_caller(db)
+            house = require_house_member(db, caller, request.house_id)
 
             house.name = request.name
             db.add(house)
@@ -107,10 +116,8 @@ class HouseServer(HouseServicer):
         self, request: DeletePayload, context: _Context, database: Database = Provide[Container.database]
     ) -> DeleteResponse:
         with database.session() as db:
-            house = db.query(House).filter(House.id == request.house_id).one_or_none()
-
-            if not house:
-                raise NotFound("House not found!")
+            caller = require_caller(db)
+            house = require_house_member(db, caller, request.house_id)
 
             for member in house.members:
                 db.delete(member)
@@ -124,9 +131,8 @@ class HouseServer(HouseServicer):
         self, request: AddMembersPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> AddMemberResponse:
         with database.session() as db:
-            house = db.query(House).filter(House.id == request.house_id).one_or_none()
-            if not house:
-                raise NotFound("House not found!")
+            caller = require_caller(db)
+            require_house_member(db, caller, request.house_id)
 
             users = db.query(HouseMember).filter(HouseMember.house_id == request.house_id).all()
             user_ids = {str(user.user_id) for user in users}
@@ -152,6 +158,8 @@ class HouseServer(HouseServicer):
         self, request: RemoveMemberPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> RemoveMemberResponse:
         with database.session() as db:
+            caller = require_caller(db)
+            require_house_member(db, caller, request.house_id)
             query = delete(HouseMember).where(
                 HouseMember.house_id == request.house_id, HouseMember.user_id == request.user_id
             )
@@ -165,6 +173,8 @@ class HouseServer(HouseServicer):
         self, request: GetPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> GetMembersResponse:
         with database.session() as db:
+            caller = require_caller(db)
+            require_house_member(db, caller, request.house_id)
             members = db.query(HouseMember).filter(HouseMember.house_id == request.house_id).all()
 
             return GetMembersResponse(house_id=str(request.house_id), users=[member.user.as_dict for member in members])
@@ -176,7 +186,7 @@ def serve():
     container.wire(modules=[__name__, ".interceptors"])
     config = container.config()
     setup_logging(
-        log_level=config.logging.level,
+        log_level=logging.getLevelNamesMapping()[config.logging.level.upper()],
         namespace="chores.house_server",
         style=" %(name)s :: %(levelname)-8s :: %(message)s",
     )

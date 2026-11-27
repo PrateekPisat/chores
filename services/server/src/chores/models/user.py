@@ -16,7 +16,7 @@ class User(Base):
     first_name: Mapped[str] = mapped_column(String, nullable=False)
     last_name: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
-    sub: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    sub: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     picture: Mapped[str] = mapped_column(String, nullable=True)
     nickname: Mapped[str] = mapped_column(String, nullable=True)
 

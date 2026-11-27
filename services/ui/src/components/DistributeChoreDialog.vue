@@ -4,9 +4,9 @@
     @before-show="beforeShow"
     @hide="$emit('close')"
   >
-    <q-card>
-      <div class="q-pa-md" style="min-width: 400px">
-        <q-form class="q-m-sm">
+    <q-card style="width: 100%; max-width: 420px">
+      <div class="q-pa-md">
+        <q-form class="q-gutter-md">
           <div class="text-h6 q-mb-sm">Distribute a chore</div>
           <q-select
             filled
@@ -50,14 +50,17 @@
             </template>
           </q-select>
 
-          <q-btn
-            class="full-width q-mt-md"
-            color="primary"
-            :label="buttonLabel"
-            @click="createOrUpdateDistribution(selectedUserIds, choreId)"
-            :loading="tasksStore.loading"
-            :disable="tasksStore.loading"
-          />
+          <div class="row items-center">
+            <q-btn flat label="Close" @click="emit('close')" />
+            <q-space />
+            <q-btn
+              color="primary"
+              :label="buttonLabel"
+              @click="createOrUpdateDistribution(selectedUserIds, choreId)"
+              :loading="tasksStore.loading"
+              :disable="tasksStore.loading"
+            />
+          </div>
         </q-form>
       </div>
     </q-card>
@@ -87,6 +90,7 @@ const userStore = userUserStore();
 const choreId: Ref<string> = ref('');
 let users: Ref<AppUser[]> = ref([]);
 const selectedUserIds: Ref<string[]> = ref([]);
+const hasDistribution = ref(false);
 
 async function beforeShow() {
   await tasksStore.listChores(props.userId);
@@ -94,11 +98,16 @@ async function beforeShow() {
 
 async function listUsers() {
   users.value = await userStore.searchUser(null, choreId.value);
-  selectedUserIds.value = await tasksStore.getDistribution(choreId.value);
+  const distribution = await tasksStore.getDistribution(choreId.value);
+  const assigned = Array.isArray(distribution)
+    ? []
+    : (distribution.users ?? []).map((user: AppUser) => user.userId);
+  selectedUserIds.value = assigned;
+  hasDistribution.value = assigned.length > 0;
 }
 
 async function createOrUpdateDistribution(userIds: string[], choreId: string) {
-  if (distributionExists.value)
+  if (hasDistribution.value)
     await tasksStore.updateDistribution(userIds, choreId);
   else await tasksStore.createDistribution(userIds, choreId);
   emit('close');
@@ -112,13 +121,7 @@ const userChores = computed((): Chore[] => {
   return tasksStore.chores;
 });
 
-const distributionExists = computed((): boolean => {
-  return !!selectedUserIds.value;
-});
-
 const buttonLabel = computed((): string => {
-  return distributionExists.value
-    ? 'Update Distribution'
-    : 'Create Distribution';
+  return hasDistribution.value ? 'Update Distribution' : 'Create Distribution';
 });
 </script>

@@ -1,22 +1,20 @@
 <template>
-  <q-layout view="hHh lpR fFf">
+  <q-layout view="lHh LpR fFf">
     <q-header elevated class="bg-primary text-white">
       <q-toolbar>
+        <q-btn
+          flat
+          dense
+          round
+          icon="menu"
+          aria-label="Menu"
+          @click="drawer = !drawer"
+        />
         <q-toolbar-title>
           <q-icon :name="mdiBroom" size="sm" class="q-mr-sm" />
-          Chores - Demo Mode
+          Chores
         </q-toolbar-title>
-
         <q-space />
-
-        <!-- Demo User Info -->
-        <div class="q-mr-md text-body2">
-          <q-avatar size="32px" class="q-mr-sm">
-            <img :src="demoUser.picture || ''" />
-          </q-avatar>
-          {{ demoUser.firstName }} {{ demoUser.lastName }}
-        </div>
-
         <q-btn
           flat
           dense
@@ -27,17 +25,23 @@
       </q-toolbar>
     </q-header>
 
+    <AppDrawer v-model="drawer" :links="links" />
+
     <q-page-container>
       <router-view />
     </q-page-container>
   </q-layout>
 </template>
 
-<script setup>
-import { useDemoData } from 'src/composables/useDemoData';
+<script setup lang="ts">
+import AppDrawer, { DrawerLink } from 'src/components/AppDrawer.vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { mdiBroom } from '@quasar/extras/mdi-v7';
+import { mdiBroom, mdiHome } from '@quasar/extras/mdi-v7';
 
-const { demoUser } = useDemoData();
 const router = useRouter();
+const drawer = ref(false);
+const links: DrawerLink[] = [
+  { label: 'Home', icon: mdiHome, to: { name: 'demo' }, exact: true },
+];
 </script>

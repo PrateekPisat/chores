@@ -1,3 +1,4 @@
+import logging
 import random
 import time
 import uuid
@@ -5,15 +6,17 @@ from concurrent import futures
 from itertools import cycle, zip_longest
 
 import grpc
+import pendulum
 from dependency_injector.wiring import inject, Provide
 from grpc._server import _Context
 from setuplog import log, setup_logging
 from sqlalchemy import delete
 from sqlalchemy.orm import selectinload
 
+from chores.auth import require_caller, require_chore_member, require_house_member, require_self
 from chores.db import Database
 from chores.deps import Container
-from chores.errors import NotFound
+from chores.errors import NotFound, PermissionDenied
 from chores.grpc_generated.chores_pb2 import (
     Cadence,
     CreateChorePayload,
@@ -53,6 +56,7 @@ from chores.grpc_generated.chores_pb2_grpc import add_TaskServicer_to_server, Ta
 from chores.interceptors import AuthInterceptor, ExceptionToStatusInterceptor
 from chores.models.chore import Chore, ChoreDistribution, Task
 from chores.models.house import House, HouseMember
+from chores.models.user import User
 from chores.users_server import _ONE_DAY_IN_SECONDS
 from chores.utils import distribution_needs_update, enum_mapper, get_intervals, get_server_credentials
 
@@ -63,16 +67,17 @@ class TaskServer(TaskServicer):
         self, request: CreateChorePayload, context: _Context, database: Database = Provide[Container.database]
     ) -> CreateChoreResponse:
         enum_map = enum_mapper(Cadence)
-        chore = Chore(
-            name=request.name,
-            description=request.description,
-            cadence=enum_map[request.cadence],
-            start_date=request.start_date,
-            end_date=request.end_date,
-            house_id=uuid.UUID(request.house_id),
-        )
-
         with database.session() as postgres:
+            caller = require_caller(postgres)
+            require_house_member(postgres, caller, request.house_id)
+            chore = Chore(
+                name=request.name,
+                description=request.description,
+                cadence=enum_map[request.cadence],
+                start_date=request.start_date,
+                end_date=request.end_date,
+                house_id=uuid.UUID(request.house_id),
+            )
             postgres.add(chore)
             postgres.commit()
 
@@ -83,6 +88,14 @@ class TaskServer(TaskServicer):
         self, request: ListChorePayload, context: _Context, database: Database = Provide[Container.database]
     ) -> ListChoreResponse:
         with database.session() as db:
+            caller = require_caller(db)
+            if not request.house_id and not request.user_id:
+                raise PermissionDenied("Cannot list chores")
+            if request.user_id:
+                require_self(caller, request.user_id, "Cannot list another user's chores")
+            if request.house_id:
+                require_house_member(db, caller, request.house_id)
+
             query = db.query(Chore)
 
             if request.house_id:
@@ -111,10 +124,8 @@ class TaskServer(TaskServicer):
         self, request: GetChorePayload, context: _Context, database: Database = Provide[Container.database]
     ) -> GetChoreResponse:
         with database.session() as db:
-            chore = db.query(Chore).filter(Chore.id == request.id).one_or_none()
-
-        if not chore:
-            raise NotFound(f"Chore {request.id} not found!")
+            caller = require_caller(db)
+            chore = require_chore_member(db, caller, request.id)
 
         return GetChoreResponse(
             id=str(chore.id),
@@ -123,6 +134,7 @@ class TaskServer(TaskServicer):
             cadence=chore.cadence,
             start_date=chore.start_date.isoformat(),
             end_date=chore.end_date.isoformat(),
+            house_id=str(chore.house_id),
         )
 
     @inject
@@ -131,6 +143,7 @@ class TaskServer(TaskServicer):
     ) -> UpdateChoreResponse:
         enum_map = enum_mapper(Cadence)
         with database.session() as db:
+            caller = require_caller(db)
             chore = (
                 db.query(Chore).options(selectinload(Chore.distributions)).filter(Chore.id == request.id).one_or_none()
             )
@@ -138,13 +151,17 @@ class TaskServer(TaskServicer):
             if not chore:
                 raise NotFound(f"Chore {request.id} not found!")
 
+            require_house_member(db, caller, str(chore.house_id))
+            if request.house_id and request.house_id != str(chore.house_id):
+                require_house_member(db, caller, request.house_id)
+
             needs_update = distribution_needs_update(chore, request, enum_map)
 
             chore.name = request.name
             chore.description = request.description
             chore.cadence = enum_map[request.cadence]
-            chore.start_date = request.start_date
-            chore.end_date = request.end_date
+            chore.start_date = pendulum.from_format(request.start_date, "YYYY-MM-DD")
+            chore.end_date = pendulum.from_format(request.end_date, "YYYY-MM-DD")
             chore.house_id = uuid.UUID(request.house_id)
             db.add(chore)
             db.commit()
@@ -162,10 +179,8 @@ class TaskServer(TaskServicer):
         self, request: DeleteChorePayload, context: _Context, database: Database = Provide[Container.database]
     ) -> DeleteChoreResponse:
         with database.session() as db:
-            chore = db.query(Chore).filter(Chore.id == request.id).one_or_none()
-
-            if not chore:
-                raise NotFound(f"Chore {request.id} not found!")
+            caller = require_caller(db)
+            chore = require_chore_member(db, caller, request.id)
 
             db.delete(chore)
             db.commit()
@@ -177,10 +192,8 @@ class TaskServer(TaskServicer):
         self, request: CreateDistributionPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> CreateDistributionResponse:
         with database.session() as db:
-            chore = db.query(Chore).filter(Chore.id == request.chore_id).one_or_none()
-
-            if not chore:
-                raise NotFound(f"Chore {request.chore_id} not found!")
+            caller = require_caller(db)
+            chore = require_chore_member(db, caller, request.chore_id)
 
             random.shuffle(request.user_ids)
             distributions = [
@@ -206,10 +219,8 @@ class TaskServer(TaskServicer):
         self, request: GetDistributionPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> GetDistributionResponse:
         with database.session() as db:
-            chore = db.query(Chore).filter(Chore.id == request.id).one_or_none()
-
-            if not chore:
-                raise NotFound(f"Chore {request.id} not found!")
+            caller = require_caller(db)
+            chore = require_chore_member(db, caller, request.id)
 
             distributions = db.query(ChoreDistribution).filter(ChoreDistribution.chore_id == chore.id).all()
             return GetDistributionResponse(
@@ -220,6 +231,7 @@ class TaskServer(TaskServicer):
                     cadence=chore.cadence,
                     start_date=chore.start_date.isoformat(),
                     end_date=chore.end_date.isoformat(),
+                    house_id=str(chore.house_id),
                 ),
                 users=[
                     UserPayload(
@@ -227,6 +239,9 @@ class TaskServer(TaskServicer):
                         email=distribution.user.email,
                         first_name=distribution.user.first_name,
                         last_name=distribution.user.last_name,
+                        sub=distribution.user.sub,
+                        picture=distribution.user.picture,
+                        nickname=distribution.user.nickname,
                     )
                     for distribution in distributions
                 ],
@@ -237,10 +252,8 @@ class TaskServer(TaskServicer):
         self, request: UpdateDistributionPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> UpdateDistributionResponse:
         with database.session() as db:
-            chore = db.query(Chore).filter(Chore.id == request.chore_id).one_or_none()
-
-            if not chore:
-                raise NotFound(f"Chore {request.chore_id} not found!")
+            caller = require_caller(db)
+            chore = require_chore_member(db, caller, request.chore_id)
 
             db.execute(delete(ChoreDistribution).where(ChoreDistribution.chore_id == chore.id))
 
@@ -268,6 +281,8 @@ class TaskServer(TaskServicer):
         self, request: DeleteDistributionPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> DeleteDistributionResponse:
         with database.session() as db:
+            caller = require_caller(db)
+            require_chore_member(db, caller, request.id)
             distributions = db.query(ChoreDistribution).filter(ChoreDistribution.chore_id == request.id).all()
 
             if not distributions:
@@ -279,10 +294,13 @@ class TaskServer(TaskServicer):
 
             return DeleteDistributionResponse(id=request.id)
 
+    @inject
     def ListTasks(
         self, request: ListTaskPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> ListTaskResponse:
         with database.session() as db:
+            caller = require_caller(db)
+            require_self(caller, request.user_id, "Cannot list another user's tasks")
             tasks = (
                 db.query(Task)
                 .join(ChoreDistribution)
@@ -323,10 +341,12 @@ class TaskServer(TaskServicer):
                 ]
             )
 
+    @inject
     def GetTask(
         self, request: GetTaskPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> GetTaskResponse:
         with database.session() as db:
+            caller = require_caller(db)
             task = (
                 db.query(Task)
                 .options(
@@ -340,6 +360,8 @@ class TaskServer(TaskServicer):
             if not task:
                 raise NotFound(f"Task {request.id} not found!")
 
+            _require_task_access(db, caller, task)
+
             return GetTaskResponse(
                 id=str(task.id),
                 due_date=task.due_date.isoformat() if task.due_date else None,
@@ -351,45 +373,67 @@ class TaskServer(TaskServicer):
                     cadence=task.chore_distribution.chore.cadence,
                     start_date=task.chore_distribution.chore.start_date.isoformat(),
                     end_date=task.chore_distribution.chore.end_date.isoformat(),
+                    house_id=str(task.chore_distribution.chore.house_id),
                 ),
                 user=UserPayload(
                     id=str(task.chore_distribution.user.id),
                     email=task.chore_distribution.user.email,
                     first_name=task.chore_distribution.user.first_name,
                     last_name=task.chore_distribution.user.last_name,
+                    sub=task.chore_distribution.user.sub,
+                    picture=task.chore_distribution.user.picture,
+                    nickname=task.chore_distribution.user.nickname,
                 ),
             )
 
+    @inject
     def UpdateTask(
         self, request: UpdateTaskPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> UpdateTaskResponse:
         with database.session() as db:
+            caller = require_caller(db)
             task = db.query(Task).filter(Task.id == request.id).one_or_none()
 
             if not task:
                 raise NotFound(f"Task {request.id} not found!")
 
-            task.due_date = request.due_date
-            task.completed_at = request.completed_at if request.completed_at else None
+            _require_task_access(db, caller, task)
+
+            task.due_date = pendulum.from_format(request.due_date, "YYYY-MM-DD")
+            task.completed_at = pendulum.parse(request.completed_at) if request.completed_at else None
 
             db.add(task)
             db.commit()
 
             return UpdateTaskResponse(id=str(task.id))
 
+    @inject
     def DeleteTask(
         self, request: DeleteTaskPayload, context: _Context, database: Database = Provide[Container.database]
     ) -> DeleteTaskResponse:
         with database.session() as db:
+            caller = require_caller(db)
             task = db.query(Task).filter(Task.id == request.id).one_or_none()
 
             if not task:
                 raise NotFound(f"Task {request.id} not found!")
 
+            _require_task_access(db, caller, task)
+
             db.delete(task)
             db.commit()
 
             return DeleteTaskResponse(id=str(task.id))
+
+
+def _require_task_access(db, caller: User, task: Task) -> None:
+    distribution = task.chore_distribution
+    if distribution is not None and str(distribution.user_id) == str(caller.id):
+        return
+    chore = distribution.chore if distribution is not None else None
+    if chore is None:
+        raise NotFound(f"Task {task.id} not found!")
+    require_house_member(db, caller, str(chore.house_id))
 
 
 def serve():
@@ -398,7 +442,7 @@ def serve():
     container.wire(modules=[__name__, ".interceptors"])
     config = container.config()
     setup_logging(
-        log_level=config.logging.level,
+        log_level=logging.getLevelNamesMapping()[config.logging.level.upper()],
         namespace="chores.task_server",
         style=" %(name)s :: %(levelname)-8s :: %(message)s",
     )

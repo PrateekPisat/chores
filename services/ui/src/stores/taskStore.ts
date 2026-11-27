@@ -120,7 +120,7 @@ export const taskStore = defineStore('task', {
     async createDistribution(userIds: string[], choreId: string) {
       this.loading = true;
       try {
-        await api.post('/chore/distribution', { userIds, choreId });
+        await api.post(`/chore/${choreId}/distribution`, { userIds });
       } catch (error) {
         this.errors = new Map([['createDistribution', ['Failed to create distribution']]]);
       } finally {

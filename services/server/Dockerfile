@@ -1,31 +1,22 @@
 FROM python:3.12-slim
 
-RUN mkdir /service
+COPY --from=ghcr.io/astral-sh/uv:0.12.5 /uv /uvx /bin/
 
-#  Configure Poetry
-ENV POETRY_VERSION=1.8.3 \ 
-    POETRY_HOME=/opt/poetry \
-    POETRY_VENV=/opt/poetry-venv \
-    POETRY_CACHE_DIR=/opt/.cache
+WORKDIR /service
 
-# Install poetry separated from system interpreter
-RUN python3 -m venv $POETRY_VENV \
-    && $POETRY_VENV/bin/pip install -U pip setuptools \
-    && $POETRY_VENV/bin/pip install poetry==${POETRY_VERSION}
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/service/.venv
 
-ENV PATH="${PATH}:${POETRY_VENV}/bin"
-    
-COPY ./services/server/poetry.lock ./services/server/pyproject.toml /service/
-
-WORKDIR /service/
-RUN poetry install
+COPY ./services/server/pyproject.toml ./services/server/uv.lock /service/
+RUN uv sync --frozen --no-install-project
 
 COPY ./services/server/ /service/
-COPY ../../certs/ /service/certs/
-RUN poetry install
+COPY ./certs/ /service/certs/
+RUN uv sync --frozen
+
+ENV PATH="/service/.venv/bin:$PATH"
 
 EXPOSE 50051
 EXPOSE 50052
 EXPOSE 50053
-
-ENTRYPOINT [ "poetry", "run" ]

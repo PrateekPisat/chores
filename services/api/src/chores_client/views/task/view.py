@@ -70,6 +70,7 @@ def get_chore(chore_id: str, task_client: TaskClientDep, token: TokenDep) -> Cho
         cadence=ENUM_MAP[response.cadence],
         start_date=response.start_date,
         end_date=response.end_date,
+        houseId=response.house_id,
     )
 
 
@@ -136,6 +137,7 @@ def get_distribution(
             cadence=ENUM_MAP[response.chore.cadence],
             start_date=response.chore.start_date,
             end_date=response.chore.end_date,
+            houseId=response.chore.house_id,
         ),
         users=[
             User(
@@ -143,6 +145,9 @@ def get_distribution(
                 email=user.email,
                 first_name=user.first_name,
                 last_name=user.last_name,
+                sub=user.sub,
+                picture=user.picture or None,
+                nickname=user.nickname or None,
             )
             for user in response.users
         ],
@@ -213,12 +218,16 @@ def get_task(task_id: str, task_client: TaskClientDep, token: TokenDep) -> Task:
             cadence=ENUM_MAP[response.chore.cadence],
             start_date=response.chore.start_date,
             end_date=response.chore.end_date,
+            houseId=response.chore.house_id,
         ),
         user=User(
             user_id=response.user.id,
             email=response.user.email,
             first_name=response.user.first_name,
             last_name=response.user.last_name,
+            sub=response.user.sub,
+            picture=response.user.picture or None,
+            nickname=response.user.nickname or None,
         ),
     )
 

@@ -35,6 +35,8 @@ class Test_HouseServer:
         assert house
         assert house.name == request.name
         assert str(house.id) == response.house_id
+        member = db.query(HouseMember).filter(HouseMember.house_id == house.id).one()
+        assert member.user_id == user.id
 
     def test_it_lists_houses(self, house_service: HouseStub, db: Session, mf: ModelFactory, config: Config):
         user = mf.user.user(email="test@example.com")
@@ -64,6 +66,7 @@ class Test_HouseServer:
     def test_it_gets_a_house(self, house_service: HouseStub, db: Session, mf: ModelFactory, config: Config):
         user = mf.user.user(email="test@example.com")
         house = mf.house.house()
+        mf.house.house_member(house_id=house.id, user_id=user.id)
         request = GetPayload(house_id=str(house.id))
 
         token = get_token_payload(user, config.cryptography.secret_key)
@@ -85,6 +88,7 @@ class Test_HouseServer:
     def test_it_updates_a_house(self, house_service: HouseStub, db: Session, mf: ModelFactory, config: Config):
         user = mf.user.user(email="test@example.com")
         house = mf.house.house()
+        mf.house.house_member(house_id=house.id, user_id=user.id)
         request = UpdatePayload(name="House 2", house_id=str(house.id))
 
         token = get_token_payload(user, config.cryptography.secret_key)
@@ -137,6 +141,7 @@ class Test_HouseServer:
     def test_it_adds_members_to_house(self, house_service: HouseStub, db: Session, mf: ModelFactory, config: Config):
         user = mf.user.user(email="test@example.com")
         house = mf.house.house()
+        mf.house.house_member(house_id=house.id, user_id=user.id)
         user1 = mf.user.user()
         user2 = mf.user.user()
         request = AddMembersPayload(house_id=str(house.id), user_ids=[str(user1.id), str(user2.id)])
@@ -148,10 +153,7 @@ class Test_HouseServer:
 
         db.expunge_all()
         members = db.query(HouseMember).filter(HouseMember.house_id == house.id).all()
-        assert len(members) == 2
-        assert members[0].user_id == user1.id
-        assert members[0].house_id == house.id
-        assert members[1].user_id == user2.id
+        assert {member.user_id for member in members} == {user.id, user1.id, user2.id}
 
     def test_it_adds_members_to_house_not_found(self, house_service: HouseStub, mf: ModelFactory, config: Config):
         user = mf.user.user(email="test@example.com")
@@ -169,6 +171,7 @@ class Test_HouseServer:
     def test_it_adds_members_to_house_user_not_found(self, house_service: HouseStub, mf: ModelFactory, config: Config):
         user = mf.user.user(email="test@example.com")
         house = mf.house.house()
+        mf.house.house_member(house_id=house.id, user_id=user.id)
         user_id = uuid.uuid4()
         request = AddMembersPayload(house_id=str(house.id), user_ids=[str(user_id)])
 
@@ -183,31 +186,32 @@ class Test_HouseServer:
     def test_it_adds_members_to_house_user_already_exists(
         self, house_service: HouseStub, mf: ModelFactory, config: Config
     ):
-        user = mf.user.user(email="test@example.com")
+        owner = mf.user.user(email="test@example.com")
         house = mf.house.house()
-        user = mf.user.user()
-        request = AddMembersPayload(house_id=str(house.id), user_ids=[str(user.id)])
+        mf.house.house_member(house_id=house.id, user_id=owner.id)
+        member = mf.user.user()
+        request = AddMembersPayload(house_id=str(house.id), user_ids=[str(member.id)])
 
-        token = get_token_payload(user, config.cryptography.secret_key)
+        token = get_token_payload(owner, config.cryptography.secret_key)
         house_service.AddMembers(request, metadata=(("authorization", f"Bearer {token}"),))
         with pytest.raises(grpc._channel._InactiveRpcError) as e:
-            token = get_token_payload(user, config.cryptography.secret_key)
             house_service.AddMembers(request, metadata=(("authorization", f"Bearer {token}"),))
 
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.ALREADY_EXISTS
-        assert exception.details() == f"User {user.id} already exists in the house {house.id}!"
+        assert exception.details() == f"User {member.id} already exists in the house {house.id}!"
 
     def test_it_removes_member(self, house_service: HouseStub, mf: ModelFactory, config: Config):
-        user = mf.user.user(email="test@example.com")
+        owner = mf.user.user(email="test@example.com")
         house = mf.house.house()
-        user = mf.user.user()
-        request = RemoveMemberPayload(house_id=str(house.id), user_id=str(user.id))
+        mf.house.house_member(house_id=house.id, user_id=owner.id)
+        member = mf.user.user()
+        request = RemoveMemberPayload(house_id=str(house.id), user_id=str(member.id))
 
-        token = get_token_payload(user, config.cryptography.secret_key)
+        token = get_token_payload(owner, config.cryptography.secret_key)
         response = house_service.RemoveMember(request, metadata=(("authorization", f"Bearer {token}"),))
         assert response.house_id == str(house.id)
-        assert response.user_id == str(user.id)
+        assert response.user_id == str(member.id)
 
     def test_it_gets_members(self, house_service: HouseStub, mf: ModelFactory, config: Config):
         user = mf.user.user(email="test@example.com")
@@ -225,3 +229,16 @@ class Test_HouseServer:
         assert response.users[0].first_name == user.first_name
         assert response.users[0].last_name == user.last_name
         assert response.users[0].email == user.email
+
+    def test_it_does_not_get_another_users_house(self, house_service: HouseStub, mf: ModelFactory, config: Config):
+        owner = mf.user.user()
+        stranger = mf.user.user()
+        house = mf.house.house()
+        mf.house.house_member(house_id=house.id, user_id=owner.id)
+        request = GetPayload(house_id=str(house.id))
+
+        with pytest.raises(grpc._channel._InactiveRpcError) as e:
+            token = get_token_payload(stranger, config.cryptography.secret_key)
+            house_service.Get(request, metadata=(("authorization", f"Bearer {token}"),))
+
+        assert e.value.code() == grpc.StatusCode.PERMISSION_DENIED

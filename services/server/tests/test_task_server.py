@@ -31,6 +31,7 @@ class Test_Chores:
     def test_it_creates_a_chore(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
         house = mf.house.house()
+        mf.house.house_member(house_id=house.id, user_id=user.id)
         now = pendulum.now()
 
         token = get_token_payload(user, config.cryptography.secret_key)
@@ -56,6 +57,7 @@ class Test_Chores:
     def test_it_lists_chores(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
         house = mf.house.house()
+        mf.house.house_member(house_id=house.id, user_id=user.id)
         chore = mf.chore.chore(house=house)
         mf.chore.chore()  # Create another chore to ensure we have multiple
         token = get_token_payload(user, config.cryptography.secret_key)
@@ -93,6 +95,7 @@ class Test_Chores:
     def test_it_gets_a_chore(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
         chore = mf.chore.chore()
+        mf.house.house_member(house_id=chore.house.id, user_id=user.id)
         token = get_token_payload(user, config.cryptography.secret_key)
         request = GetChorePayload(id=str(chore.id))
 
@@ -105,6 +108,7 @@ class Test_Chores:
         assert enum_map[response.cadence] == chore.cadence
         assert response.start_date == str(chore.start_date)
         assert response.end_date == str(chore.end_date)
+        assert response.house_id == str(chore.house_id)
 
     def test_it_raises_on_missing_chore(self, task_service: TaskStub, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
@@ -121,6 +125,7 @@ class Test_Chores:
     def test_it_updates_a_chore(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
         house = mf.house.house()
+        mf.house.house_member(house_id=house.id, user_id=user.id)
         chore = mf.chore.chore(house=house)
         token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateChorePayload(
@@ -139,6 +144,7 @@ class Test_Chores:
 
         db.expunge_all()
         chore = db.query(Chore).filter(Chore.id == chore.id).one_or_none()
+        assert chore is not None
         assert chore.name == request.name
         assert chore.description == request.description
         assert chore.cadence == "WEEKLY"
@@ -153,6 +159,7 @@ class Test_Chores:
         house = mf.house.house()
         chore = mf.chore.chore(house=house, cadence="DAILY", start_date=now.date(), end_date=now.add(days=7).date())
         user = mf.user.user()
+        mf.house.house_member(house_id=house.id, user_id=user.id)
         mf.chore.distribution(chore=chore, user=user)
 
         token = get_token_payload(user, config.cryptography.secret_key)
@@ -171,6 +178,7 @@ class Test_Chores:
 
         db.expunge_all()
         chore = db.query(Chore).filter(Chore.id == chore.id).one_or_none()
+        assert chore is not None
         assert chore.name == request.name
         assert chore.description == request.description
         assert chore.cadence == "WEEKLY"
@@ -188,6 +196,46 @@ class Test_Chores:
 
         for i, task in enumerate(tasks, start=1):
             assert task.due_date == now.add(weeks=i).date()
+
+    def test_it_keeps_completed_tasks_when_only_details_change(
+        self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory
+    ):
+        now = pendulum.now()
+        start = now.date()
+        end = now.add(days=7).date()
+        user = mf.user.user(email="test@example.com")
+        house = mf.house.house()
+        mf.house.house_member(house_id=house.id, user_id=user.id)
+        chore = mf.chore.chore(house=house, cadence="DAILY", start_date=start, end_date=end)
+        distribution = mf.chore.distribution(chore=chore, user=user)
+        task = mf.chore.task(chore_distribution=distribution, completed_at=now)
+        task_id = task.id
+        distribution_id = distribution.id
+
+        token = get_token_payload(user, config.cryptography.secret_key)
+        request = UpdateChorePayload(
+            id=str(chore.id),
+            name="Renamed chore",
+            description=chore.description,
+            cadence=Cadence.DAILY,
+            start_date=start.isoformat(),
+            end_date=end.isoformat(),
+            house_id=str(house.id),
+        )
+
+        response = task_service.UpdateChore(request, metadata=(("authorization", f"Bearer {token}"),))
+
+        assert response.id == str(chore.id)
+
+        db.expunge_all()
+        saved = db.query(Task).filter(Task.id == task_id).one_or_none()
+        assert saved is not None
+        assert saved.completed_at is not None
+        assert saved.chore_distribution_id == distribution_id
+
+        chore = db.query(Chore).filter(Chore.id == chore.id).one()
+        assert chore.name == "Renamed chore"
+        assert chore.cadence == "DAILY"
 
     def test_it_raises_on_missing_chore_for_update(self, task_service: TaskStub, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
@@ -212,6 +260,7 @@ class Test_Chores:
     def test_it_deletes_a_chore(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
         chore = mf.chore.chore()
+        mf.house.house_member(house_id=chore.house.id, user_id=user.id)
         token = get_token_payload(user, config.cryptography.secret_key)
         request = UpdateChorePayload(id=str(chore.id))
 
@@ -239,6 +288,7 @@ class Test_ChoreDistribution:
         now = pendulum.now()
         user = mf.user.user(email="test@example.com")
         chore = mf.chore.chore(start_date=now.date(), end_date=now.add(days=7).date(), cadence="DAILY")
+        mf.house.house_member(house_id=chore.house.id, user_id=user.id)
         user1 = mf.user.user()
         user2 = mf.user.user()
 
@@ -249,9 +299,7 @@ class Test_ChoreDistribution:
         assert response.id == str(chore.id)
 
         chore_distribution = db.query(ChoreDistribution).filter(ChoreDistribution.chore_id == chore.id).all()
-        assert len(chore_distribution) == 2
-        assert chore_distribution[0].user_id == user1.id
-        assert chore_distribution[1].user_id == user2.id
+        assert {distribution.user_id for distribution in chore_distribution} == {user1.id, user2.id}
 
         tasks = (
             db.query(Task)
@@ -284,6 +332,7 @@ class Test_ChoreDistribution:
         user = mf.user.user(email="test@example.com")
         chore = mf.chore.chore(cadence="DAILY")
         user = mf.user.user()
+        mf.house.house_member(house_id=chore.house.id, user_id=user.id)
         mf.chore.distribution(chore=chore, user=user)
         token = get_token_payload(user, config.cryptography.secret_key)
         request = GetDistributionPayload(id=str(chore.id))
@@ -299,12 +348,14 @@ class Test_ChoreDistribution:
         assert response.chore.cadence == 0  # DAILY
         assert response.chore.start_date == chore.start_date.isoformat()
         assert response.chore.end_date == chore.end_date.isoformat()
+        assert response.chore.house_id == str(chore.house_id)
 
         assert len(response.users) == 1
         assert response.users[0].id == str(user.id)
         assert response.users[0].email == user.email
         assert response.users[0].first_name == user.first_name
         assert response.users[0].last_name == user.last_name
+        assert response.users[0].sub == user.sub
 
     def test_it_raises_on_missing_distribution(self, task_service: TaskStub, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
@@ -322,6 +373,7 @@ class Test_ChoreDistribution:
         user = mf.user.user(email="test@example.com")
         now = pendulum.now()
         chore = mf.chore.chore(cadence="DAILY", start_date=now.date(), end_date=now.add(days=7).date())
+        mf.house.house_member(house_id=chore.house.id, user_id=user.id)
         user1 = mf.user.user()
         user2 = mf.user.user()
         mf.chore.distribution(chore=chore, user=user1)
@@ -333,9 +385,7 @@ class Test_ChoreDistribution:
         assert response.id == str(chore.id)
 
         chore_distribution = db.query(ChoreDistribution).filter(ChoreDistribution.chore_id == chore.id).all()
-        assert len(chore_distribution) == 2
-        assert chore_distribution[0].user_id == user1.id
-        assert chore_distribution[1].user_id == user2.id
+        assert {distribution.user_id for distribution in chore_distribution} == {user1.id, user2.id}
 
         tasks = (
             db.query(Task)
@@ -366,6 +416,7 @@ class Test_ChoreDistribution:
         user = mf.user.user(email="test@example.com")
         chore = mf.chore.chore(cadence="DAILY")
         user = mf.user.user()
+        mf.house.house_member(house_id=chore.house.id, user_id=user.id)
         mf.chore.distribution(chore=chore, user=user)
 
         token = get_token_payload(user, config.cryptography.secret_key)
@@ -418,6 +469,8 @@ class Test_Task:
             assert t.chore.cadence == 0
             assert t.chore.start_date == chore.start_date.isoformat()
             assert t.chore.end_date == chore.end_date.isoformat()
+            assert t.chore.house_id == str(chore.house_id)
+            assert t.user.sub == user.sub
 
     def test_it_gets_a_task(self, task_service: TaskStub, db: Session, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
@@ -445,6 +498,8 @@ class Test_Task:
         assert response.chore.cadence == 0
         assert response.chore.start_date == chore.start_date.isoformat()
         assert response.chore.end_date == chore.end_date.isoformat()
+        assert response.chore.house_id == str(chore.house_id)
+        assert response.user.sub == user.sub
 
     def test_it_raises_on_missing_task(self, task_service: TaskStub, config: Config, mf: ModelFactory):
         user = mf.user.user(email="test@example.com")
@@ -528,3 +583,14 @@ class Test_Task:
         exception = e.value.exception()
         assert exception.code() == grpc.StatusCode.NOT_FOUND
         assert exception.details() == f"Task {request.id} not found!"
+
+    def test_it_does_not_list_another_users_tasks(self, task_service: TaskStub, config: Config, mf: ModelFactory):
+        owner = mf.user.user()
+        stranger = mf.user.user()
+        token = get_token_payload(stranger, config.cryptography.secret_key)
+        request = ListTaskPayload(user_id=str(owner.id))
+
+        with pytest.raises(grpc._channel._InactiveRpcError) as e:
+            task_service.ListTasks(request, metadata=(("authorization", f"Bearer {token}"),))
+
+        assert e.value.code() == grpc.StatusCode.PERMISSION_DENIED

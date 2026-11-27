@@ -16,3 +16,7 @@ class Unauthenticated(GrpcException):
 
 class PermissionDenied(GrpcException):
     status_code = grpc.StatusCode.PERMISSION_DENIED
+
+
+class InvalidArgument(GrpcException):
+    status_code = grpc.StatusCode.INVALID_ARGUMENT

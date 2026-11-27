@@ -4,9 +4,9 @@
     @hide="closeDialog"
     @before-show="beforeShow"
   >
-    <q-card>
-      <div class="q-pa-md" style="min-width: 400px">
-        <q-form class="q-m-sm">
+    <q-card style="width: 100%; max-width: 420px">
+      <div class="q-pa-md">
+        <q-form class="q-gutter-md">
           <div class="text-h6 q-mb-sm">Create a New Chore</div>
           <q-select
             filled
@@ -87,12 +87,11 @@
             </template>
           </q-input>
 
-          <q-btn
-            class="full-width q-mt-md"
-            color="primary"
-            label="Create Chore"
-            @click="createChore"
-          />
+          <div class="row items-center">
+            <q-btn flat label="Close" @click="closeDialog" />
+            <q-space />
+            <q-btn color="primary" label="Create chore" @click="createChore" />
+          </div>
         </q-form>
       </div>
     </q-card>
